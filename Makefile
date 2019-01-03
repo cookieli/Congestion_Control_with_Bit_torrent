@@ -3,7 +3,7 @@ CC 		= gcc
 CFLAGS		= -g -Wall -DDEBUG
 LDFLAGS		= -lm
 TESTDEFS	= -DTESTING			# comment this out to disable debugging code
-OBJS		= peer.o bt_parse.o spiffy.o debug.o input_buffer.o chunk.o sha.o try_find_peer.o utilities.o
+OBJS		= peer.o bt_parse.o spiffy.o debug.o input_buffer.o chunk.o sha.o try_find_peer.o utilities.o peer_storage.o
 MK_CHUNK_OBJS   = make_chunks.o chunk.o sha.o
 
 BINS            = peer make-chunks
@@ -30,15 +30,18 @@ make-chunks: $(MK_CHUNK_OBJS)
 	$(CC) $(CFLAGS) $(MK_CHUNK_OBJS) -o $@ $(LDFLAGS)
 
 utilities: utilities.o chunk.o sha.o
+try_find_peer: try_find_peer.o utilities.o chunk.o sha.o spiffy.o
+
 clean:
-	rm -f *.o $(BINS) $(TESTBINS)
+	rm -f *.o $(BINS) $(TESTBINS) utilities try_find_peer
 
 bt_parse.c: bt_parse.h
 
 try_find_peer.c: try_find_peer.h
 
-# The debugging utility code
+peer_storage.c: peer_storage.h
 
+# The debugging utility code
 debug-text.h: debug.h
 	./debugparse.pl < debug.h > debug-text.h
 

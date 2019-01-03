@@ -20,8 +20,9 @@
 #include "spiffy.h"
 #include "bt_parse.h"
 #include "input_buffer.h"
-#include "try_find_peer.h"
-
+//#include "try_find_peer.h"
+//#include "utilities.h"
+#include "peer_storage.h"
 void peer_run(bt_config_t *config);
 
 int main(int argc, char **argv) {
@@ -42,6 +43,8 @@ int main(int argc, char **argv) {
   }
 #endif
     print_peer_list(&config);
+    init_peer_storage_pool(&config);
+    //set_peer_pool_hashes(&config);
     peer_run(&config);
     return 0;
 }
@@ -55,17 +58,44 @@ void process_inbound_udp(int sock) {
 
   fromlen = sizeof(from);
   spiffy_recvfrom(sock, buf, BUFLEN, 0, (struct sockaddr *) &from, &fromlen);
+  fprintf(stderr, "buf length: %d\n", strlen(buf));
   printf("PROCESS_INBOUND_UDP SKELETON -- replace!\n"
-	 "Incoming message from %s:%d\n%s\n\n", 
+         "Incoming message from %s:%d\n%s\n\n",
 	 inet_ntoa(from.sin_addr),
 	 ntohs(from.sin_port),
 	 buf);
-  fflush(stdout);
+  header_t *header = (header_t *)buf;
+  int type = get_packet_type(header);
+  switch(type){
+  case(0):// it is WHOHAS packet
+      fprintf(stderr, "I have receive WHOHAS packet\n");
+      //fprintf(stderr, "%d\n", ((contact_packet_t *)buf)->header.packet_type);
+      print_WHOHAS_packet((contact_packet_t *)buf);
+      handle_WHOHAS_packet(sock, (contact_packet_t *)buf, from, fromlen);
+      break;
+  case(1)://it is IHAVE packet
+      fprintf(stderr, "I have receive IHAVE packet\n");
+      print_WHOHAS_packet((contact_packet_t *)buf);
+      break;
+  case(2)://it is GET packet
+      break;
+  case(3)://it is DATA packet
+      break;
+  case(4)://it is ACK packet
+      break;
+  case(5)://it is DENIED packet
+      break;
+  }
+  //fflush(stdout);
 }
+
 
 void process_get(char *chunkfile, char *outputfile) {
     printf("PROCESS GET SKELETON CODE CALLED.  Fill me in!  (%s, %s)\n",chunkfile, outputfile);
     //send_WHOHAS_to_peers();
+    int packets_length = 0;
+    contact_packet_t **packets = construct_WHOHAS_packet(chunkfile, &packets_length);
+    set_WHOHAS_cache(packets, packets_length);
 }
 
 void handle_user_input(char *line, void *cbdata) {
@@ -83,49 +113,43 @@ void handle_user_input(char *line, void *cbdata) {
 
 
 void peer_run(bt_config_t *config) {
-  int sock;
-  struct sockaddr_in myaddr;
-  fd_set readfds;
-  struct user_iobuf *userbuf;
-  if ((userbuf = create_userbuf()) == NULL) {
-    perror("peer_run could not allocate userbuf");
-    exit(-1);
-  }
-  
-  if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
-    perror("peer_run could not create socket");
-    exit(-1);
-  }
-  
-  bzero(&myaddr, sizeof(myaddr));
-  myaddr.sin_family = AF_INET;
-  myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  myaddr.sin_port = htons(config->myport);
-  
-  if (bind(sock, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
-    perror("peer_run could not bind socket");
-    exit(-1);
-  }
-
-  
-  spiffy_init(config->identity, (struct sockaddr *)&myaddr, sizeof(myaddr));
+    int sock;
+    struct sockaddr_in myaddr;
+    fd_set readfds;
+    struct user_iobuf *userbuf;
+    if ((userbuf = create_userbuf()) == NULL) {
+        perror("peer_run could not allocate userbuf");
+        exit(-1);
+    }
+    if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
+        perror("peer_run could not create socket");
+        exit(-1);
+    }
+    bzero(&myaddr, sizeof(myaddr));
+    myaddr.sin_family = AF_INET;
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    myaddr.sin_port = htons(config->myport);
+    if (bind(sock, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
+        perror("peer_run could not bind socket");
+        exit(-1);
+    }
+    spiffy_init(config->identity, (struct sockaddr *)&myaddr, sizeof(myaddr));
   //send_WHOHAS_to_peers(sock, config);
- 
-  while (1) {
-    int nfds;
-    FD_SET(STDIN_FILENO, &readfds);
-    FD_SET(sock, &readfds);
-    //process_inbound_udp(sock);
-    nfds = select(sock+1, &readfds, NULL, NULL, NULL);
-    //process_inbound_udp(sock);
-    if (nfds > 0) {
-        if (FD_ISSET(sock, &readfds)) {
-            process_inbound_udp(sock);
-      }
-        if (FD_ISSET(STDIN_FILENO, &readfds)) {
-            process_user_input(STDIN_FILENO, userbuf, handle_user_input,"Currently unused");
-            send_WHOHAS_to_peers(sock, config);
+    while (1) {
+        int nfds;
+        FD_SET(STDIN_FILENO, &readfds);
+        FD_SET(sock, &readfds);
+        nfds = select(sock+1, &readfds, NULL, NULL, NULL);
+        if (nfds > 0) {//set this part  as state transfer
+            if (FD_ISSET(sock, &readfds)) {
+                process_inbound_udp(sock);
+            }
+            if (FD_ISSET(STDIN_FILENO, &readfds)) {
+                process_user_input(STDIN_FILENO, userbuf, handle_user_input,"Currently unused");
+                //send_WHOHAS_to_peers(sock, config);
+                //print_peer_storage_pool();
+                send_WHOHAS_packet(sock, config);
+            }
         }
     }
-  }
 }

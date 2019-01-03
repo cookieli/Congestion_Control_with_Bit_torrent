@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   myaddr.sin_family = AF_INET;
   inet_aton("127.0.0.1", &myaddr.sin_addr);
   myaddr.sin_port = htons(atoi(argv[2]));
-  
+ 
   if (bind(fd, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
     perror("peer_run could not bind socket");
   }

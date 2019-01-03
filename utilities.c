@@ -23,6 +23,12 @@ chunk_hash **read_hash_from_chunk_files(char *chunkfile, int *length){
     to_binary_hash(&buf[2]);
 #endif
     int max_id = buf[0] - '0';
+    fseek(fd, 0, SEEK_SET);
+    memset(buf, 0 ,CHUNK_FILE_LINE_LEN + 1);
+    len = fread(buf, 1, CHUNK_FILE_LINE_LEN, fd);
+    buf[len] = '\0';
+    int min_id = buf[0] - '0';
+    max_id = max_id - min_id;
 #ifdef _TEST_UTILITIES
     fprintf(stderr, "%d\n", max_id);
 #endif
@@ -33,9 +39,9 @@ chunk_hash **read_hash_from_chunk_files(char *chunkfile, int *length){
     for(int i = 0; i < max_id + 1; i++){
         hashes[i] = (chunk_hash *)malloc(sizeof(chunk_hash));
     }
-    set_hash_value(hashes[max_id], &buf[2]);
+    //set_hash_value(hashes[0], &buf[2]);
     fseek(fd, 0, SEEK_SET);
-    for(int i = 0; i < max_id; i++){
+    for(int i = 0; i <= max_id; i++){
         memset(buf, 0, CHUNK_FILE_LINE_LEN + 1);
         ssize_t len = fread(buf, 1, CHUNK_FILE_LINE_LEN, fd);
         buf[len] = '\0';
@@ -85,7 +91,7 @@ uint8_t* to_binary_hash(char *ascii){
 #ifdef _TEST_UTILITIES
 int main(int argc, char *argv[]){
     int len = 0;
-    chunk_hash **hashes = read_hash_from_chunk_files("/tmp/B.chunks", &len);
+    chunk_hash **hashes = read_hash_from_chunk_files("/tmp/B.haschunks", &len);
     fprintf(stderr, "main: %d\n", len);
     free_hashes(hashes, len);
 }

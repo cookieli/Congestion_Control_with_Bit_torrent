@@ -34,7 +34,7 @@ struct bt_config_s {
     short identity;
     unsigned short myport;
 
-  int argc; 
+  int argc;
   char **argv;
 
   bt_peer_t *peers;
