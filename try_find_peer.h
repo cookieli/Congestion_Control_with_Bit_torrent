@@ -44,4 +44,6 @@ int hashes_num_of_WHOHAS_packet(contact_packet_t *packet);
 int len_of_WHOHAS_packet(contact_packet_t *packet);
 contact_packet_t *construct_IHAVE_packet(chunk_hash *hashes, int length);
 
+void free_contact_packets(contact_packet_t **packets, int len);
+
 #endif

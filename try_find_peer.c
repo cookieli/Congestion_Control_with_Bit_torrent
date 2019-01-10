@@ -70,6 +70,12 @@ contact_packet_t **construct_WHOHAS_packet(char *chunkfile, int *packets_length)
     free_hashes(hashes, length);
     return packets;
 }
+void free_contact_packets(contact_packet_t **packets, int len){
+    for(int i = 0; i < len; i++){
+        free(packets[i]);
+    }
+    free(packets);
+}
 contact_packet_t *set_WHOHAS_packet(chunk_hash **hashes, int length){
     if(length > MAX_HASH_NUM){
         fprintf(stderr, "too many hashes\n");

@@ -88,6 +88,7 @@ void process_inbound_udp(int sock) {
       if(found_all_resource_locations()){
           fprintf(stderr, "i have found all resource locations\n");
           print_peer_hash_addr_map();
+          free_peer_temp_state_for_GET_in_pool();
       }
       break;
   case(2)://it is GET packet
@@ -105,16 +106,8 @@ void process_inbound_udp(int sock) {
 
 void process_get(char *chunkfile, char *outputfile) {
     printf("PROCESS GET SKELETON CODE CALLED.  Fill me in!  (%s, %s)\n",chunkfile, outputfile);
-    //send_WHOHAS_to_peers();
-    int packets_length = 0;
-    contact_packet_t **packets = construct_WHOHAS_packet(chunkfile, &packets_length);
-    set_WHOHAS_cache(packets, packets_length);
-    set_want_hashes(chunkfile);
-    p->hash_maps = init_hash_addr_map(p->want_num, p->want_hashes);
-    fprintf(stderr, "print want hashes\n");
-    for(int i = 0; i < p->want_num; i++){
-        print_chunk_hash(p->want_hashes[i]);
-    }
+    set_temp_state_for_peer_storage_pool(chunkfile);
+    set_peer_pool_hash_addr_map();
 }
 
 void handle_user_input(char *line, void *cbdata) {
