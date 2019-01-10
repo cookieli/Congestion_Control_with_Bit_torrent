@@ -1,3 +1,5 @@
+#ifndef _TRY_FIND_PEER_H_
+#define _TRY_FIND_PEER_H_
 #include "bt_parse.h"
 #include <stdint.h>
 #include "sha.h"
@@ -41,3 +43,5 @@ int two_hash_equal(chunk_hash h1, chunk_hash h2);
 int hashes_num_of_WHOHAS_packet(contact_packet_t *packet);
 int len_of_WHOHAS_packet(contact_packet_t *packet);
 contact_packet_t *construct_IHAVE_packet(chunk_hash *hashes, int length);
+
+#endif

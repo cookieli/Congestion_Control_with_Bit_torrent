@@ -20,8 +20,8 @@
 #include "spiffy.h"
 #include "bt_parse.h"
 #include "input_buffer.h"
-//#include "try_find_peer.h"
-//#include "utilities.h"
+#include "try_find_peer.h"
+#include "utilities.h"
 #include "peer_storage.h"
 void peer_run(bt_config_t *config);
 
@@ -64,6 +64,14 @@ void process_inbound_udp(int sock) {
 	 inet_ntoa(from.sin_addr),
 	 ntohs(from.sin_port),
 	 buf);
+#ifdef _TEST_PEER
+  host_and_port *hap = convert_from_sockaddr(from);
+  print_host_and_port(hap);
+  struct sockaddr_in temp = convert_from_hap(hap);
+  fprintf(stderr, "sock addr: %s:%d\n", inet_ntoa(temp.sin_addr), ntohs(temp.sin_port));
+  struct sockaddr_in a = temp;
+  fprintf(stderr, "sock addr: %s: %d\n", inet_ntoa(a.sin_addr), ntohs(temp.sin_port));
+#endif
   header_t *header = (header_t *)buf;
   int type = get_packet_type(header);
   switch(type){
@@ -76,6 +84,11 @@ void process_inbound_udp(int sock) {
   case(1)://it is IHAVE packet
       fprintf(stderr, "I have receive IHAVE packet\n");
       print_WHOHAS_packet((contact_packet_t *)buf);
+      check_IHAVE_packet((contact_packet_t *)buf, from);
+      if(found_all_resource_locations()){
+          fprintf(stderr, "i have found all resource locations\n");
+          print_peer_hash_addr_map();
+      }
       break;
   case(2)://it is GET packet
       break;
@@ -96,6 +109,12 @@ void process_get(char *chunkfile, char *outputfile) {
     int packets_length = 0;
     contact_packet_t **packets = construct_WHOHAS_packet(chunkfile, &packets_length);
     set_WHOHAS_cache(packets, packets_length);
+    set_want_hashes(chunkfile);
+    p->hash_maps = init_hash_addr_map(p->want_num, p->want_hashes);
+    fprintf(stderr, "print want hashes\n");
+    for(int i = 0; i < p->want_num; i++){
+        print_chunk_hash(p->want_hashes[i]);
+    }
 }
 
 void handle_user_input(char *line, void *cbdata) {
