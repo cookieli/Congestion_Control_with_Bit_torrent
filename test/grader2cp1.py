@@ -27,7 +27,7 @@ class project1cp1tester(tester):
         if not os.path.isfile(BIN):
             print "%s is not found" % (BIN)
         print "Trying to start "
-        cmd = "perl hupsim_1.pl -m %s -n %s -p %s -v %s" % \
+        cmd = "hupsim_1.pl -m %s -n %s -p %s -v %s" % \
               ("topo_1.map", "nodes.map", "15441", "0")
         print cmd
         pHumpsim = Popen(cmd.split(' '))
@@ -45,7 +45,7 @@ class project1cp1tester(tester):
               ("nodes.map", "B.chunks", "C.chunks", "0")
         print cmd
         pPeer = Popen(cmd.split(' '), stdout=PIPE, stdin=PIPE)
-        print "Wait 1 seconds."        
+        print "Wait 1 seconds."
         time.sleep(1)
         pPeer.stdin.write("GET A.chunks silly.tar\n")
         time.sleep(1)

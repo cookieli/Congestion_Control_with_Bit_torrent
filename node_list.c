@@ -3,12 +3,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 //#define _TEST_NODE_LIST
+//node list's head doesn't store data
 node_t *init_node_list(){
     node_t *node_list = (node_t *)malloc(sizeof(node_t));
     node_list->next = NULL;
     return node_list;
 }
-
+void free_node_list(node_t *node_list){
+    node_t *cursor = node_list->next;
+    node_t *temp;
+    while(cursor != NULL){
+        temp = cursor->next;
+        cursor->next=NULL;
+        free(cursor);
+        cursor = temp;
+    }
+    node_list->next = NULL;
+    free(node_list);
+}
 node_t *init_node(struct sockaddr_in s){
     node_t *node = (node_t *)malloc(sizeof(node_t));
     node->addr = s;
@@ -69,5 +81,6 @@ int main(int argc, char **argv){
     sa3.sin_family = AF_INET;
     insert_addr_to_list(sa3, node_list);
     print_node_list(node_list);
+    free_node_list(node_list);
 }
 #endif

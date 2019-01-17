@@ -23,9 +23,13 @@
 #include "try_find_peer.h"
 #include "utilities.h"
 #include "peer_storage.h"
+#include "bt_client.h"
+#include <time.h>
+clock_t begin;
 void peer_run(bt_config_t *config);
 
 int main(int argc, char **argv) {
+    begin = clock();
     debug = DEBUG_INIT;
     bt_config_t config;
     bt_init(&config, argc, argv);
@@ -84,12 +88,8 @@ void process_inbound_udp(int sock) {
   case(1)://it is IHAVE packet
       fprintf(stderr, "I have receive IHAVE packet\n");
       print_WHOHAS_packet((contact_packet_t *)buf);
-      check_IHAVE_packet((contact_packet_t *)buf, from);
-      if(found_all_resource_locations()){
-          fprintf(stderr, "i have found all resource locations\n");
-          print_peer_hash_addr_map();
-          free_peer_temp_state_for_GET_in_pool();
-      }
+      handle_IHAVE_packet((contact_packet_t *)buf, from);
+      print_peer_hash_addr_map();
       break;
   case(2)://it is GET packet
       break;
@@ -120,6 +120,9 @@ void handle_user_input(char *line, void *cbdata) {
     if (strlen(outf) > 0) {
       process_get(chunkf, outf);
     }
+  } else if (strcmp(line, "quit") == 0){
+      fprintf(stderr, "the peer need to quit\n");
+      exit(0);
   }
 }
 
@@ -129,6 +132,7 @@ void peer_run(bt_config_t *config) {
     struct sockaddr_in myaddr;
     fd_set readfds;
     struct user_iobuf *userbuf;
+    struct timeval tv;
     if ((userbuf = create_userbuf()) == NULL) {
         perror("peer_run could not allocate userbuf");
         exit(-1);
@@ -149,19 +153,23 @@ void peer_run(bt_config_t *config) {
   //send_WHOHAS_to_peers(sock, config);
     while (1) {
         int nfds;
+        FD_ZERO(&readfds);
         FD_SET(STDIN_FILENO, &readfds);
         FD_SET(sock, &readfds);
-        nfds = select(sock+1, &readfds, NULL, NULL, NULL);
+
+        tv.tv_sec = 5;
+        tv.tv_usec = 0;
+        nfds = select(sock+1, &readfds, NULL, NULL, &tv);
         if (nfds > 0) {//set this part  as state transfer
             if (FD_ISSET(sock, &readfds)) {
                 process_inbound_udp(sock);
             }
-            if (FD_ISSET(STDIN_FILENO, &readfds)) {
+            else if (FD_ISSET(STDIN_FILENO, &readfds)) {
                 process_user_input(STDIN_FILENO, userbuf, handle_user_input,"Currently unused");
-                //send_WHOHAS_to_peers(sock, config);
-                //print_peer_storage_pool();
                 send_WHOHAS_packet(sock, config);
             }
+        }else if(nfds == 0){
+            handle_client_timeout(sock, config);
         }
     }
 }

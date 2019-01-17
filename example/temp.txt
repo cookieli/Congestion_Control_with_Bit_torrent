@@ -1,0 +1,5 @@
+./peer -p example/nodes.map -c example/a.haschunks -f example/all.masterchunks -m 4 -i 1
+./peer -p example/nodes.map -c example/b.haschunks -f example/all.masterchunks -m 4 -i 2
+./peer -p example/nodes.map -c example/c.haschunks -f example/all.masterchunks -m 4 -i 3
+./peer -p example/nodes.map -c example/d.haschunks -f example/all.masterchunks -m 4 -i 4
+./peer -p example/nodes.map -c example/e.haschunks -f example/all.masterchunks -m 4 -i 5

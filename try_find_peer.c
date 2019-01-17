@@ -92,6 +92,7 @@ contact_packet_t *set_WHOHAS_packet(chunk_hash **hashes, int length){
 }
 
 contact_packet_t *construct_IHAVE_packet(chunk_hash *hashes, int length){
+    //fprintf(stderr, "hashes num is %d", length);
     contact_packet_t *IHAVE_packet = (contact_packet_t *)malloc(sizeof(contact_packet_t) + length * sizeof(chunk_hash));
     uint16_t packet_len = 20 + 20*length;
     construct_packet_header(&IHAVE_packet->header, 1, packet_len, 0, 0);

@@ -10,7 +10,8 @@
 typedef enum peer_state_s{
     INITIAL_STATE,
     ASK_RESOURCE_LOCATION,
-    I_HAVE_RESOURCE
+    I_HAVE_RESOURCE,
+    FOUND_ALL_RESOURCE
 } peer_state_t;
 
 typedef struct hash_addr_map_s{
@@ -29,7 +30,7 @@ typedef struct peer_temp_state_for_GET_s{
 typedef struct peer_storage_pool{
 
     peer_temp_state_for_GET_t *peer_temp_state_for_GET;
-    
+   
     chunk_hash *my_hashes;
     int chunk_hash_num;
 
@@ -44,7 +45,8 @@ typedef struct host_and_port{
     int port;
 } host_and_port;
 
-
+peer_state_t get_peer_state();
+void set_peer_state();
 
 //extern node_hash_t *node_hash;
 extern peer_storage_pool *p;
@@ -58,8 +60,8 @@ void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt);
 void set_temp_state_for_peer_storage_pool(char *chunkfile);
 void set_peer_pool_hash_addr_map();
 
-int *peer_hashes_own_from(contact_packet_t *packet);
-chunk_hash *get_IHAVE_hashes_from_pool(int *suffices);
+int *peer_hashes_own_from(contact_packet_t *packet, int *len);
+chunk_hash *get_IHAVE_hashes_from_pool(int *suffices, int length);
 void print_peer_storage_pool();
 void handle_WHOHAS_packet(int sock, contact_packet_t *packet, struct sockaddr_in to, socklen_t tolen);
 
@@ -76,6 +78,7 @@ struct sockaddr_in convert_from_hap(host_and_port *hap);
 
 //about node hashes
 hash_addr_map_t *init_hash_addr_map(int want_num, chunk_hash *want_hashes);
+void free_hash_addr_map(hash_addr_map_t *maps, int map_size);
 
 void add_node_to_addr_map(chunk_hash hash, struct sockaddr_in s, hash_addr_map_t *maps, int maps_length);
 

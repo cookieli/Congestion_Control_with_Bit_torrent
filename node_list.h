@@ -14,6 +14,7 @@ typedef struct node_s {
 //extern node_t *node_list;
 
 node_t *init_node_list();
+void free_node_list(node_t *node_list);
 node_t *init_node(struct sockaddr_in s);
 void insert_addr_to_list(struct sockaddr_in s, node_t *node_list);
 void insert_node_to_list(node_t *n, node_t *node_list);

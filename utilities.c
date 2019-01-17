@@ -13,6 +13,11 @@ chunk_hash **read_hash_from_chunk_files(char *chunkfile, int *length){
     FILE *fd;
     char buf[CHUNK_FILE_LINE_LEN + 1];
     fd = fopen(chunkfile, "rb");
+    if(fd == NULL){
+        fprintf(stderr, "can't open file %s\n", chunkfile);
+        perror("fopen");
+        exit(-1);
+    }
     //to find how many chunks we have
     fseek(fd, -CHUNK_FILE_LINE_LEN, SEEK_END);
     ssize_t len = fread(buf, 1,  CHUNK_FILE_LINE_LEN,fd);

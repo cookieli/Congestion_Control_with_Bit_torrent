@@ -8,6 +8,12 @@
 //#include "try_find_peer.h"
 peer_storage_pool *p;
 
+peer_state_t get_peer_state(){
+    return p->peer_state;
+}
+void set_peer_state(peer_state_t state){
+    p->peer_state = state;
+}
 peer_temp_state_for_GET_t *init_peer_temp_state_for_GET(){
     peer_temp_state_for_GET_t *ret = (peer_temp_state_for_GET_t *)malloc(sizeof(peer_temp_state_for_GET_t));
     ret->WHOHAS_cache = NULL;
@@ -48,6 +54,7 @@ void set_temp_state_for_peer_storage_pool(char *chunkfile){
     set_WHOHAS_cache(packets, packets_length, pt);
     set_want_hashes(chunkfile, pt);
     p->peer_temp_state_for_GET = pt;
+    p->peer_state = ASK_RESOURCE_LOCATION;
 }
 
 void set_peer_pool_hash_addr_map(){
@@ -70,6 +77,7 @@ void send_WHOHAS_packet(int sockfd, bt_config_t *config){
         return;
     }
 
+    fprintf(stderr, "have WHOHAS packets to send\n");
     for(int i = 0; i < pt->WHOHAS_num; i++){
         send_WHOHAS_to_peers(sockfd, config, *(pt->WHOHAS_cache));
     }
@@ -110,6 +118,7 @@ int found_all_resource_locations(){
     for(i = 0; i < pt->want_num; i++){
         if(pt->hashes_found[i] == 0)     return 0;
     }
+    // p->peer_state = FOUND_ALL_RESOURCE;
     return 1;
 }
 
@@ -126,7 +135,7 @@ void set_peer_pool_hashes(bt_config_t *config){
     free_hashes(hashes, length);
 }
 
-int *peer_hashes_own_from(contact_packet_t *packet){
+int *peer_hashes_own_from(contact_packet_t *packet, int *len){
     int total_hash_num = 0;
     int suffix_buffer[MAX_UDP_PACKET_SIZE];
     int i, j;
@@ -140,6 +149,7 @@ int *peer_hashes_own_from(contact_packet_t *packet){
     if(total_hash_num == 0){
         return NULL;
     }
+    *len = total_hash_num;
     int *suffices = (int *)malloc(sizeof(int)* total_hash_num);
     for(i = 0; i < total_hash_num; i++){
         suffices[i] = suffix_buffer[i];
@@ -147,9 +157,9 @@ int *peer_hashes_own_from(contact_packet_t *packet){
     return suffices;
 }
 
-chunk_hash *get_IHAVE_hashes_from_pool(int *suffices){
+chunk_hash *get_IHAVE_hashes_from_pool(int *suffices, int length){
     
-    int length = sizeof(suffices)/sizeof(int);
+    //int length = sizeof(suffices)/sizeof(int);
     chunk_hash *hashes = (chunk_hash *)malloc(length*sizeof(chunk_hash));
     for(int i = 0; i < length; i++){
         hashes[i] = p->my_hashes[suffices[i]];
@@ -159,14 +169,16 @@ chunk_hash *get_IHAVE_hashes_from_pool(int *suffices){
 }
 
 void handle_WHOHAS_packet(int sock, contact_packet_t *packet, struct sockaddr_in to, socklen_t tolen){
-    int *suffices = peer_hashes_own_from(packet);
+    int len;
+    int *suffices = peer_hashes_own_from(packet, &len);
     if(suffices == NULL){
         fprintf(stderr, "i dont' have request files\n");
         return ;
     }
-    chunk_hash *hashes = get_IHAVE_hashes_from_pool(suffices);
-    int length = sizeof(suffices)/sizeof(int);
-    contact_packet_t *IHAVE_packet = construct_IHAVE_packet(hashes, length);
+    p->peer_state = I_HAVE_RESOURCE;
+    chunk_hash *hashes = get_IHAVE_hashes_from_pool(suffices, len);
+    //int length = sizeof(suffices)/sizeof(int);
+    contact_packet_t *IHAVE_packet = construct_IHAVE_packet(hashes, len);
     free(hashes);
     //print_WHOHAS_packet(IHAVE_packet);
     spiffy_sendto(sock, IHAVE_packet, IHAVE_packet->header.packet_len, 0, (struct sockaddr *)&to, tolen);
@@ -215,6 +227,14 @@ hash_addr_map_t *init_hash_addr_map(int want_num, chunk_hash *want_hashes){
     return maps;
 }
 
+void free_hash_addr_map(hash_addr_map_t *maps, int maps_size){
+    int i;
+    for(i = 0; i < maps_size; i++){
+        free_node_list((maps + i)->node_list);
+    }
+    free(maps);
+}
+
 void add_node_to_addr_map(chunk_hash hash, struct sockaddr_in s, hash_addr_map_t *maps, int maps_length){
     hash_addr_map_t *corresponding_map = get_map_by_hash(hash, maps, maps_length);
     if(corresponding_map != NULL){
@@ -239,7 +259,7 @@ void print_hash_addr_map(hash_addr_map_t *maps, int want_num){
     for(i = 0; i < want_num; i++){
         fprintf(stderr, "chunk hash is: ");
         print_chunk_hash((maps + i)->hash);
-        print_node_list(maps->node_list);
+        print_node_list((maps+i)->node_list);
     }
 }
 
