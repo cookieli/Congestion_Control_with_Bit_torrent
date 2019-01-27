@@ -24,9 +24,18 @@ peer_temp_state_for_GET_t *init_peer_temp_state_for_GET(){
     return ret;
 }
 
+void init_peer_client_info_in_pool(){
+    peer_client_info_t *pc = (peer_client_info_t *)malloc(sizeof(peer_client_info_t));
+    pc->peer_temp_state_for_GET = NULL;
+    pc->hash_maps = NULL;
+    pc->maps_num = 0;
+    pc->GET_packet_sender = NULL;
+    p->peer_client_info = pc;
+}
 void free_peer_temp_state_for_GET_in_pool(){
-    free_peer_temp_state_for_GET(p->peer_temp_state_for_GET);
-    p->peer_temp_state_for_GET = NULL;
+    peer_client_info_t *pc = p->peer_client_info;
+    free_peer_temp_state_for_GET(pc->peer_temp_state_for_GET);
+    pc->peer_temp_state_for_GET = NULL;
 }
 
 void free_peer_temp_state_for_GET(peer_temp_state_for_GET_t *pt){
@@ -39,11 +48,10 @@ void free_peer_temp_state_for_GET(peer_temp_state_for_GET_t *pt){
 }
 void init_peer_storage_pool(bt_config_t *config){
     p = (peer_storage_pool *)malloc(sizeof(peer_storage_pool));
-    p->peer_temp_state_for_GET = NULL;
     p->my_hashes = NULL;
     p->chunk_hash_num = 0;
     p->peer_state = INITIAL_STATE;
-    p->GET_packet_sender = NULL;
+    p->peer_client_info = NULL;
     set_peer_pool_hashes(config);
 }
 
@@ -53,18 +61,20 @@ void set_temp_state_for_peer_storage_pool(char *chunkfile){
     peer_temp_state_for_GET_t *pt = init_peer_temp_state_for_GET();
     set_WHOHAS_cache(packets, packets_length, pt);
     set_want_hashes(chunkfile, pt);
-    p->peer_temp_state_for_GET = pt;
+    p->peer_client_info->peer_temp_state_for_GET = pt;
     p->peer_state = ASK_RESOURCE_LOCATION;
 }
 
 void set_peer_pool_hash_addr_map(){
-    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
-    p->hash_maps = init_hash_addr_map(pt->want_num, pt->want_hashes);
-    p->maps_num = pt->want_num;
+    peer_client_info_t *pc = p->peer_client_info;
+    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
+    pc->hash_maps = init_hash_addr_map(pt->want_num, pt->want_hashes);
+    pc->maps_num = pt->want_num;
 }
 
 void set_peer_pool_GET_packet_sender(){
-    p->GET_packet_sender = init_GET_packet_sender(p->hash_maps, p->maps_num);
+    peer_client_info_t *pc = p->peer_client_info;
+    pc->GET_packet_sender = init_GET_packet_sender(pc->hash_maps, pc->maps_num);
 }
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt){
     pt->WHOHAS_cache = packets;
@@ -73,7 +83,8 @@ void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_fo
 }
 
 void send_WHOHAS_packet(int sockfd, bt_config_t *config){
-    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    peer_client_info_t *pc = p->peer_client_info;
+    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
     if (pt->WHOHAS_cache == NULL){
         fprintf(stderr, "don't have WHOHAS packets to send\n");
         return;
@@ -85,7 +96,8 @@ void send_WHOHAS_packet(int sockfd, bt_config_t *config){
     }
 }
 void send_GET_packet_in_peer_pool(int sock){
-    GET_packet_sender_t *sender = p->GET_packet_sender;
+    peer_client_info_t *pc = p->peer_client_info;
+    GET_packet_sender_t *sender = pc->GET_packet_sender;
     if(sender->cursor == sender->tunnel_num){
         fprintf(stderr, "have already send all tunnel(GET packet)");
         return;
@@ -111,11 +123,12 @@ void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt){
 
 void check_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
     int i;
-    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    peer_client_info_t *pc = p->peer_client_info;
+    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
     for(i = 0; i < pt->want_num; i++){
         if(map_this_hash_to_packet(pt->want_hashes[i], packet)){
             pt->hashes_found[i] = 1;
-            add_node_to_addr_map(pt->want_hashes[i], from, p->hash_maps, p->maps_num);
+            add_node_to_addr_map(pt->want_hashes[i], from, pc->hash_maps, pc->maps_num);
         }
     }
 }
@@ -124,7 +137,8 @@ void check_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
 
 int found_all_resource_locations(){
     int i;
-    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    peer_client_info_t *pc = p->peer_client_info;
+    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
     
     for(i = 0; i < pt->want_num; i++){
         if(pt->hashes_found[i] == 0)     return 0;
@@ -197,7 +211,8 @@ void handle_WHOHAS_packet(int sock, contact_packet_t *packet, struct sockaddr_in
 
 void print_peer_storage_pool(){
     fprintf(stderr, "WHOHAS packet:\n");
-    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    peer_client_info_t *pc = p->peer_client_info;
+    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
     if(pt == NULL){
         fprintf(stderr, "don't have peer state for pool");
         return;
@@ -258,10 +273,11 @@ void add_node_to_addr_map(chunk_hash hash, struct sockaddr_in s, hash_addr_map_t
 }
 
 void add_hash_to_peer_temp_state_for_GET_in_pool(chunk_hash *hash){
-    if(p->peer_temp_state_for_GET == NULL){
-        p->peer_temp_state_for_GET = init_peer_temp_state_for_GET();
+    peer_client_info_t *pc = p->peer_client_info;
+    if(pc->peer_temp_state_for_GET == NULL){
+        pc->peer_temp_state_for_GET = init_peer_temp_state_for_GET();
     }
-    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
     for(int i = 0; i < pt->want_num; i++){
         if(two_hash_equal(*hash, pt->want_hashes[i]))   return;
     }
@@ -279,7 +295,8 @@ void add_hash_to_peer_temp_state_for_GET_in_pool(chunk_hash *hash){
 }
 
 void set_WHOHAS_cache_in_pool(){
-    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    peer_client_info_t *pc = p->peer_client_info;
+    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
     if(pt->want_num <= MAX_HASH_NUM){
         pt->WHOHAS_cache[pt->WHOHAS_num] = set_WHOHAS_packet_from_hash(pt->want_hashes, pt->want_num);
     }else {
@@ -320,5 +337,6 @@ void print_hash_addr_map(hash_addr_map_t *maps, int want_num){
 
 void print_peer_hash_addr_map(){
     //peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
-    print_hash_addr_map(p->hash_maps, p->maps_num);
+    peer_client_info_t *pc = p->peer_client_info;
+    print_hash_addr_map(pc->hash_maps, pc->maps_num);
 }

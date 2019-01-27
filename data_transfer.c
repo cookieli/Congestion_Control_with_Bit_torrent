@@ -82,7 +82,8 @@ void print_GET_packet_tunnel(GET_packet_tunnel_t *t){
 
 void print_GET_packet_sender(){
     fprintf(stderr, "the GET packet sender: \n");
-    GET_packet_sender_t *s = p->GET_packet_sender;
+    peer_client_info_t *pc = p->peer_client_info;
+    GET_packet_sender_t *s = pc->GET_packet_sender;
     int i;
     for(i = 0; i < s->tunnel_num; i++){
         print_GET_packet_tunnel(&s->tunnels[i]);

@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
     if (debug & DEBUG_INIT) {
         bt_dump_config(&config);
-  }
+    }
 #endif
     print_peer_list(&config);
     init_peer_storage_pool(&config);
@@ -120,6 +120,7 @@ void process_inbound_udp(int sock) {
 
 void process_get(char *chunkfile, char *outputfile) {
     printf("PROCESS GET SKELETON CODE CALLED.  Fill me in!  (%s, %s)\n",chunkfile, outputfile);
+    init_peer_client_info_in_pool();
     set_temp_state_for_peer_storage_pool(chunkfile);
     set_peer_pool_hash_addr_map();
 }

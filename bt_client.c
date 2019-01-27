@@ -16,7 +16,8 @@ void handle_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
         }
     } else if(get_peer_state() == GET_ERROR_FOR_RESOURCE_LOCATION){
         //we need to resend GET tunnel
-        GET_packet_sender_t *sender = p->GET_packet_sender;
+        peer_client_info_t *pc = p->peer_client_info;
+        GET_packet_sender_t *sender = pc->GET_packet_sender;
         if((sender->tunnels + sender->cursor)->packet == NULL){
             fprintf(stderr, "we need to reconstruct sender tunnel\n");
             GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
@@ -39,7 +40,8 @@ void handle_client_timeout(int sockfd, bt_config_t *config){
     }
     else if(get_peer_state() == FOUND_ALL_RESOURCE){
         // print_GET_packet_sender();
-        GET_packet_sender_t *sender = p->GET_packet_sender;
+        peer_client_info_t *pc = p->peer_client_info;
+        GET_packet_sender_t *sender = pc->GET_packet_sender;
         GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
         if(check_time_out_in_GET_tunnnel_after_last_sent(tunnel) && check_GET_tunnel_retransmit_time(tunnel) < 3){
             fprintf(stderr, "You need to retransmit GET packet for hash: ");

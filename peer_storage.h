@@ -26,18 +26,30 @@ typedef struct peer_temp_state_for_GET_s{
     int *hashes_found;
 } peer_temp_state_for_GET_t;
 
-typedef struct peer_storage_pool{
-
+typedef struct peer_client_info_s{
     peer_temp_state_for_GET_t *peer_temp_state_for_GET;
-   
-    chunk_hash *my_hashes;
-    int chunk_hash_num;
-
-    GET_packet_sender_t *GET_packet_sender;
-    peer_state_t peer_state;
 
     hash_addr_map_t *hash_maps;
     int maps_num;
+
+    GET_packet_sender_t *GET_packet_sender;
+} peer_client_info_t;
+
+typedef struct peer_storage_pool{
+
+    peer_temp_state_for_GET_t *peer_temp_state_for_GET;
+
+    //peer basic info
+    chunk_hash *my_hashes;
+    int chunk_hash_num;
+    peer_state_t peer_state;
+
+    peer_client_info_t *peer_client_info;
+
+    //peer client info
+
+    //peer server info
+    
 } peer_storage_pool;
 
 typedef struct host_and_port{
@@ -51,6 +63,7 @@ void set_peer_state(peer_state_t state);
 //extern node_hash_t *node_hash;
 extern peer_storage_pool *p;
 
+void init_peer_client_info_in_pool();
 void init_peer_storage_pool(bt_config_t *config);
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt);
 void send_WHOHAS_packet(int sockfd, bt_config_t *config);
