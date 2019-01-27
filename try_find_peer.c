@@ -90,6 +90,20 @@ contact_packet_t *set_WHOHAS_packet(chunk_hash **hashes, int length){
     WHOHAS_packet->hashes_num = (char)length;
     return WHOHAS_packet;
 }
+contact_packet_t *set_WHOHAS_packet_from_hash(chunk_hash *hashes, int length){
+     if(length > MAX_HASH_NUM){
+        fprintf(stderr, "too many hashes\n");
+        exit(-1);
+    }
+    contact_packet_t *WHOHAS_packet = (contact_packet_t *)malloc(sizeof(contact_packet_t) + length * sizeof(chunk_hash));
+    uint16_t packet_len = 20 + 20*length;
+    construct_packet_header(&WHOHAS_packet->header, 0, packet_len, 0, 0);
+    for(int i = 0; i < length; i++){
+        set_packet_hashes(&hashes[i],  &WHOHAS_packet->hashes[i]);
+    }
+    WHOHAS_packet->hashes_num = (char)length;
+    return WHOHAS_packet;
+}
 
 contact_packet_t *construct_IHAVE_packet(chunk_hash *hashes, int length){
     //fprintf(stderr, "hashes num is %d", length);
@@ -113,10 +127,6 @@ void print_WHOHAS_packet(contact_packet_t *packet){
         print_chunk_hash(packet->hashes[i]);
     }
 }
-
-
-
-
 void print_chunk_hash(chunk_hash h){
     for(int i = 0; i < SHA1_HASH_SIZE; i++){
         fprintf(stderr, "%d ", h.binary_hash[i]);
@@ -156,6 +166,8 @@ int two_hash_equal(chunk_hash h1, chunk_hash h2){
     }
     return 1;
 }
+
+
 
 #ifdef _TEST_PACKET
 int main(int argc, char *argv[]){

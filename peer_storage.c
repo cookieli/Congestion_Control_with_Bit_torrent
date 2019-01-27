@@ -43,7 +43,7 @@ void init_peer_storage_pool(bt_config_t *config){
     p->my_hashes = NULL;
     p->chunk_hash_num = 0;
     p->peer_state = INITIAL_STATE;
-
+    p->GET_packet_sender = NULL;
     set_peer_pool_hashes(config);
 }
 
@@ -63,7 +63,9 @@ void set_peer_pool_hash_addr_map(){
     p->maps_num = pt->want_num;
 }
 
-
+void set_peer_pool_GET_packet_sender(){
+    p->GET_packet_sender = init_GET_packet_sender(p->hash_maps, p->maps_num);
+}
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt){
     pt->WHOHAS_cache = packets;
     pt->WHOHAS_num = length;
@@ -79,8 +81,17 @@ void send_WHOHAS_packet(int sockfd, bt_config_t *config){
 
     fprintf(stderr, "have WHOHAS packets to send\n");
     for(int i = 0; i < pt->WHOHAS_num; i++){
-        send_WHOHAS_to_peers(sockfd, config, *(pt->WHOHAS_cache));
+        send_WHOHAS_to_peers(sockfd, config, *(pt->WHOHAS_cache + i));
     }
+}
+void send_GET_packet_in_peer_pool(int sock){
+    GET_packet_sender_t *sender = p->GET_packet_sender;
+    if(sender->cursor == sender->tunnel_num){
+        fprintf(stderr, "have already send all tunnel(GET packet)");
+        return;
+    }
+    send_GET_tunnel(sock, sender->tunnels + sender->cursor);
+    //sender->cursor += 1;
 }
 
 void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt){
@@ -187,6 +198,10 @@ void handle_WHOHAS_packet(int sock, contact_packet_t *packet, struct sockaddr_in
 void print_peer_storage_pool(){
     fprintf(stderr, "WHOHAS packet:\n");
     peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    if(pt == NULL){
+        fprintf(stderr, "don't have peer state for pool");
+        return;
+    }
     for(int i = 0; i < pt->WHOHAS_num; i++){
         print_WHOHAS_packet(pt->WHOHAS_cache[i]);
     }
@@ -240,6 +255,46 @@ void add_node_to_addr_map(chunk_hash hash, struct sockaddr_in s, hash_addr_map_t
     if(corresponding_map != NULL){
         insert_addr_to_list(s, corresponding_map->node_list);
     }
+}
+
+void add_hash_to_peer_temp_state_for_GET_in_pool(chunk_hash *hash){
+    if(p->peer_temp_state_for_GET == NULL){
+        p->peer_temp_state_for_GET = init_peer_temp_state_for_GET();
+    }
+    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    for(int i = 0; i < pt->want_num; i++){
+        if(two_hash_equal(*hash, pt->want_hashes[i]))   return;
+    }
+    if(pt->want_num == 0){
+        pt->want_hashes = (chunk_hash *)malloc(sizeof(chunk_hash));
+        pt->WHOHAS_cache = (contact_packet_t **)malloc(sizeof(contact_packet_t *));
+        pt->hashes_found = (int *)malloc(sizeof(int));
+    } else{
+        pt->want_hashes = (chunk_hash *)realloc(pt->want_hashes,sizeof(chunk_hash) * (pt->want_num + 1));
+        pt->hashes_found = (int *)realloc(pt->hashes_found, sizeof(int *) * (pt->want_num + 1));
+    }
+    pt->want_hashes[pt->want_num] = *hash;
+    pt->hashes_found[pt->want_num] = 0;
+    pt->want_num += 1;
+}
+
+void set_WHOHAS_cache_in_pool(){
+    peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
+    if(pt->want_num <= MAX_HASH_NUM){
+        pt->WHOHAS_cache[pt->WHOHAS_num] = set_WHOHAS_packet_from_hash(pt->want_hashes, pt->want_num);
+    }else {
+        int num = pt->want_num;
+        chunk_hash *cursor = pt->want_hashes;
+        while(num > MAX_HASH_NUM){
+            pt->WHOHAS_cache[pt->WHOHAS_num] = set_WHOHAS_packet_from_hash(cursor, MAX_HASH_NUM);
+            num -= MAX_HASH_NUM;
+            cursor = cursor +MAX_HASH_NUM;
+            pt->WHOHAS_num += 1;
+            pt->WHOHAS_cache = (contact_packet_t **)realloc(pt->WHOHAS_cache, sizeof(contact_packet_t *) * (pt->WHOHAS_num+1));
+        }
+        pt->WHOHAS_cache[pt->WHOHAS_num] = set_WHOHAS_packet_from_hash(cursor, num);
+    }
+    pt->WHOHAS_num += 1;
 }
 
 hash_addr_map_t *get_map_by_hash(chunk_hash hash, hash_addr_map_t *maps, int want_num){

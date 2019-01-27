@@ -25,11 +25,10 @@
 #include "peer_storage.h"
 #include "bt_client.h"
 #include <time.h>
-clock_t begin;
+#include "data_transfer.h"
 void peer_run(bt_config_t *config);
 
 int main(int argc, char **argv) {
-    begin = clock();
     debug = DEBUG_INIT;
     bt_config_t config;
     bt_init(&config, argc, argv);
@@ -89,9 +88,24 @@ void process_inbound_udp(int sock) {
       fprintf(stderr, "I have receive IHAVE packet\n");
       print_WHOHAS_packet((contact_packet_t *)buf);
       handle_IHAVE_packet((contact_packet_t *)buf, from);
-      print_peer_hash_addr_map();
+      if(get_peer_state() == FOUND_ALL_RESOURCE){
+          fprintf(stderr, "------------peer_hashe_addr_map--------------\n");
+          print_peer_hash_addr_map();
+          fprintf(stderr, "------------peer_hashe_addr_map--------------\n");
+          //NOW we need to construct GET packet from node-list
+          set_peer_pool_GET_packet_sender();
+          send_GET_packet_in_peer_pool(sock);
+          fprintf(stderr, "------------peer_GET_packet_sender--------------\n");
+          print_GET_packet_sender();
+          fprintf(stderr, "------------peer_GET_packet_sender--------------\n");
+      } else if(get_peer_state() == GET_ERROR_FOR_RESOURCE_LOCATION){
+          send_GET_packet_in_peer_pool(sock);
+          set_peer_state(FOUND_ALL_RESOURCE);
+      }
       break;
   case(2)://it is GET packet
+      fprintf(stderr, "I have receive GET packet\n");
+      print_GET_packet((GET_packet_t *)buf);
       break;
   case(3)://it is DATA packet
       break;

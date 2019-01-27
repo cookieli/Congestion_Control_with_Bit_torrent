@@ -1,23 +1,22 @@
 #ifndef _PEER_STORAGE_H_
 #define _PEER_STORAGE_H_
 
-
+#include "types.h"
 #include "utilities.h"
 #include "node_list.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "data_transfer.h"
 typedef enum peer_state_s{
     INITIAL_STATE,
     ASK_RESOURCE_LOCATION,
     I_HAVE_RESOURCE,
-    FOUND_ALL_RESOURCE
+    FOUND_ALL_RESOURCE,
+    GET_ERROR_FOR_RESOURCE_LOCATION
 } peer_state_t;
 
-typedef struct hash_addr_map_s{
-    chunk_hash hash;
-    node_t *node_list;
-} hash_addr_map_t;
+
 
 typedef struct peer_temp_state_for_GET_s{
     contact_packet_t **WHOHAS_cache;
@@ -34,6 +33,7 @@ typedef struct peer_storage_pool{
     chunk_hash *my_hashes;
     int chunk_hash_num;
 
+    GET_packet_sender_t *GET_packet_sender;
     peer_state_t peer_state;
 
     hash_addr_map_t *hash_maps;
@@ -46,7 +46,7 @@ typedef struct host_and_port{
 } host_and_port;
 
 peer_state_t get_peer_state();
-void set_peer_state();
+void set_peer_state(peer_state_t state);
 
 //extern node_hash_t *node_hash;
 extern peer_storage_pool *p;
@@ -54,12 +54,19 @@ extern peer_storage_pool *p;
 void init_peer_storage_pool(bt_config_t *config);
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt);
 void send_WHOHAS_packet(int sockfd, bt_config_t *config);
+void send_GET_packet_in_peer_pool(int sock);
+
+
 void set_peer_pool_hashes(bt_config_t *config);
 void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt);
 
+peer_temp_state_for_GET_t *init_peer_temp_state_for_GET();
+void add_hash_to_peer_temp_state_for_GET_in_pool(chunk_hash *hash);
+void set_WHOHAS_cache_in_pool();
+
 void set_temp_state_for_peer_storage_pool(char *chunkfile);
 void set_peer_pool_hash_addr_map();
-
+void set_peer_pool_GET_packet_sender();
 int *peer_hashes_own_from(contact_packet_t *packet, int *len);
 chunk_hash *get_IHAVE_hashes_from_pool(int *suffices, int length);
 void print_peer_storage_pool();
@@ -89,5 +96,7 @@ void print_peer_hash_addr_map();
 
 void free_peer_temp_state_for_GET(peer_temp_state_for_GET_t *pt);
 void free_peer_temp_state_for_GET_in_pool();
+
+
 
 #endif

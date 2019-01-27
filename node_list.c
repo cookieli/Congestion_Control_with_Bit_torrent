@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 //#define _TEST_NODE_LIST
 //node list's head doesn't store data
 node_t *init_node_list(){
@@ -61,7 +62,16 @@ void print_node_list(node_t *node_list){
         cursor = cursor->next;
     }
 }
-
+struct sockaddr_in get_addr_from_node_list(node_t *lst){
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    node_t *cursor = lst->next;
+    if(cursor != NULL){
+        return cursor->addr;
+    }
+    fprintf(stderr, "the node list don't have node\n");
+    return addr;
+}
 #ifdef _TEST_NODE_LIST
 int main(int argc, char **argv){
     struct sockaddr_in sa1;

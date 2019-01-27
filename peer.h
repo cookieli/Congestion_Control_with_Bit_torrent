@@ -1,1 +1,1 @@
-
+extern clock_t begin;
