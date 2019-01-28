@@ -4,7 +4,9 @@
 #include <assert.h>
 #include <stdlib.h> // for malloc
 #include <string.h> // for memset
-
+#include "try_find_peer.h"
+#include "utilities.h"
+#include "bt_parse.h"
 /**
  * fp -- the file pointer you want to chunkify.
  * chunk_hashes -- The chunks are stored at this locations.
@@ -23,7 +25,71 @@ int make_chunks(FILE *fp, uint8_t *chunk_hashes[]) {
 
 	return numchunks;
 }
+chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
+    chunk_t chunk;
+    char buf[CHUNK_FILE_LINE_LEN];
+    char master_chunk_filename[PATH_LEN];
+    char line[FILE_LEN];
+    FILE *hc;
+    FILE *master_chunk_f;
+    binhash_copy(h->binary_hash, chunk.binhash);
+    binary2hex(chunk.binhash, BIN_HASH_SIZE, chunk.hexhash);
+    hc = fopen(config->has_chunk_file, "rb");
+    ssize_t len; //= fread(buf, 1, CHUNK_FILE_LINE_LEN, hc);
+    //buf[len] = '\0';
+    while((len = fread(buf, 1, CHUNK_FILE_LINE_LEN, hc)) == CHUNK_FILE_LINE_LEN){
+        buf[len] = '\0';
+        fprintf(stderr, "%s\n", &buf[2]);
+        fprintf(stderr, "%s\n", chunk.hexhash);
+        fprintf(stderr, "print the buf: \n");
+        //for(int i = 0; i < CHUNK_FILE_LINE_LEN; )
+        if(!compare_two_hex_hashes(&buf[2], chunk.hexhash)){
+            fprintf(stderr, "the chunk id: %c\n", buf[0]);
+            chunk.id = buf[0] - '0';
+            break;
+        }
+    }
+    fclose(hc);
+    master_chunk_f = fopen(config->chunk_file, "r");
+    if(fgets(line, FILE_LEN, master_chunk_f) != NULL){
+        sscanf(line, "File: %s\n", master_chunk_filename);
+    }
+    fclose(master_chunk_f);
+    read_chunk_data_by_id(master_chunk_filename, chunk.id, chunk.data);
+    return chunk;
+}
+void read_chunk_data_by_id(char *filename, int id, uint8_t *data){
+    FILE *fp = fopen(filename, "r");
+    fseek(fp, DATA_CHUNK_SIZE*id, SEEK_SET);
+    fread((char *)data, 1, DATA_CHUNK_SIZE, fp);
+    fclose(fp);
+}
+int compare_two_hex_hashes(char *a, char *b){
+    for(int i = 0; i < HEX_HASH_SIZE; i++){
+        if(a[i] != b[i]){
+            return -1;
+        }
+    }
+    return 0;
+}
+void binhash_copy(uint8_t *from, uint8_t *to){
+    int i;
+    for(i =0 ; i < BIN_HASH_SIZE; i++){
+        to[i] = from[i];
+    }
+}
 
+void print_chunk(chunk_t *t){
+    fprintf(stderr, "id: %d\n", t->id);
+    for(int i = 0; i < BIN_HASH_SIZE; i++){
+        fprintf(stderr, "%d ", t->binhash[i]);
+    }
+    fprintf(stderr, "\n");
+    for(int i = 0; i < HEX_HASH_SIZE; i++){
+        fprintf(stderr, "%c ", t->hexhash[i]);
+    }
+    fprintf(stderr, "\n");
+}
 /**
  * str -- is the data you want to hash
  * len -- the length of the data you want to hash.
@@ -101,5 +167,11 @@ int main(int argc, char *argv[]) {
 	binary2hex(hash1,SHA1_HASH_SIZE,ascii);
 
 	printf("%s\n",ascii);
+
+    //to test load chunk file
+    //bt_config_t config;
+    //config.chunk_file="example/all.masterchunks";
+    //config.has_chunk_file = "example/b.haschunks";
+    //chunk_t c = load_chunk_from_tar()
 }
 #endif //_TEST_CHUNK_C_

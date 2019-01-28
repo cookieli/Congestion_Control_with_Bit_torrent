@@ -34,7 +34,7 @@ void handle_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
 }
 
 void handle_client_timeout(int sockfd, bt_config_t *config){
-    fprintf(stderr, "handle_client_timeout\n");
+    //fprintf(stderr, "handle_client_timeout\n");
     if(get_peer_state() == ASK_RESOURCE_LOCATION){
         send_WHOHAS_packet(sockfd, config);
     }

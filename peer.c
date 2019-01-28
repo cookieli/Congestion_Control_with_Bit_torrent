@@ -26,6 +26,7 @@
 #include "bt_client.h"
 #include <time.h>
 #include "data_transfer.h"
+#include "chunk.h"
 void peer_run(bt_config_t *config);
 
 int main(int argc, char **argv) {
@@ -181,6 +182,17 @@ void peer_run(bt_config_t *config) {
             }
             else if (FD_ISSET(STDIN_FILENO, &readfds)) {
                 process_user_input(STDIN_FILENO, userbuf, handle_user_input,"Currently unused");
+                chunk_t t1,t2;
+                t1 = load_chunk_from_tar(&p->my_hashes[0], config);
+                fprintf(stderr, "print chunk t1\n");
+                print_chunk(&t1);
+                t2 = load_chunk_from_tar(&p->my_hashes[1], config);
+                fprintf(stderr, "print chunk t2\n");
+                print_chunk(&t2);
+                FILE *fd = fopen("a.tar", "w+");
+                fwrite(t1.data, 1, DATA_CHUNK_SIZE, fd);
+                fwrite(t2.data, 1, DATA_CHUNK_SIZE, fd);
+                fclose(fd);
                 send_WHOHAS_packet(sock, config);
             }
         }else if(nfds == 0){

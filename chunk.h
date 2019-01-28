@@ -12,26 +12,51 @@
 #define _CHUNK_H_
 #include <stdio.h>
 #include <inttypes.h>
+#include "try_find_peer.h"
+#include "try_find_peer.h"
 
 #define BT_CHUNK_SIZE (512 * 1024)
 
 #define ascii2hex(ascii,len,buf) hex2binary((ascii),(len),(buf))
 #define hex2ascii(buf,len,ascii) binary2hex((buf),(len),(ascii))
 
+#define BIN_HASH_SIZE 20
+#define HEX_HASH_SIZE 40
+#define DATA_CHUNK_SIZE (512*1024)
+#define PACKET_DATA_SIZE 1000
+
+#define PATH_LEN 255
+#define FILE_LEN 255
+
+#define MAX_SEQ_NUM  (DATA_CHUNK_SIZE/PACKET_DATA_SIZE)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-  /* Returns the number of chunks created, return -1 on error */
-  int make_chunks(FILE *fp, uint8_t **chunk_hashes);  
 
-  /* returns the sha hash of the string */
-  void shahash(uint8_t *chr, int len, uint8_t *target);
+    typedef struct chunk_s{
+        int id;//the chunk id
+        char hexhash[HEX_HASH_SIZE+1];
+        uint8_t binhash[BIN_HASH_SIZE];
+        uint8_t data[DATA_CHUNK_SIZE];
+    } chunk_t;
 
-  /* converts a hex string to ascii */
-  void binary2hex(uint8_t *buf, int len, char *ascii);
+    void binhash_copy(uint8_t *from, uint8_t *to);
+    void read_chunk_data_by_id(char *filename, int id, uint8_t *data);
+    chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config);
+    void print_chunk(chunk_t *t);
+    int compare_two_hex_hashes(char *a, char *b);
+    /* Returns the number of chunks created, return -1 on error */
+    int make_chunks(FILE *fp, uint8_t **chunk_hashes);  
 
-  /* converts an ascii to hex */
-  void hex2binary(char *hex, int len, uint8_t*buf);
+    /* returns the sha hash of the string */
+    void shahash(uint8_t *chr, int len, uint8_t *target);
+
+    /* converts a hex string to ascii */
+    void binary2hex(uint8_t *buf, int len, char *ascii);
+
+    /* converts an ascii to hex */
+    void hex2binary(char *hex, int len, uint8_t*buf);
 #ifdef __cplusplus
 }
 #endif

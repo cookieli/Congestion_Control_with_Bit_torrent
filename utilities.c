@@ -8,7 +8,7 @@
 
 //#include "try_find_peer.h"
 //#define _TEST_UTILITIES
-#define CHUNK_FILE_LINE_LEN 43
+//#define CHUNK_FILE_LINE_LEN 43
 chunk_hash **read_hash_from_chunk_files(char *chunkfile, int *length){
     FILE *fd;
     char buf[CHUNK_FILE_LINE_LEN + 1];
@@ -33,7 +33,7 @@ chunk_hash **read_hash_from_chunk_files(char *chunkfile, int *length){
     len = fread(buf, 1, CHUNK_FILE_LINE_LEN, fd);
     buf[len] = '\0';
     int min_id = buf[0] - '0';
-    max_id = max_id - min_id;
+;    max_id = max_id - min_id;
 #ifdef _TEST_UTILITIES
     fprintf(stderr, "%d\n", max_id);
 #endif
