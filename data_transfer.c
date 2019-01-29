@@ -100,3 +100,7 @@ int check_time_out_in_GET_tunnnel_after_last_sent(GET_packet_tunnel_t *t){
 int check_GET_tunnel_retransmit_time(GET_packet_tunnel_t *t){
     return t->retransmit_time;
 }
+
+int check_transfer_with_bin_hash(transfer_t *t, chunk_hash *h){
+    return check_chunk_with_bin_hash(*t->chunk, h->binary_hash);
+}

@@ -23,6 +23,13 @@ typedef struct GET_packet_sender_s{
     int cursor;
 } GET_packet_sender_t;
 
+typedef struct transfer_s{
+    chunk_t *chunk;
+    uint8_t send_seq[MAX_SEQ_NUM];
+    uint8_t have_sent;
+    struct sockaddr_in to;
+} transfer_t;
+
 GET_packet_t *construct_GET_packet(chunk_hash *hash);
 GET_packet_sender_t *init_GET_packet_sender(hash_addr_map_t *maps, int map_num);
 void init_GET_packet_tunnel(GET_packet_tunnel_t *tunnel, GET_packet_t *packet, struct sockaddr_in addr);
@@ -37,6 +44,7 @@ void print_GET_packet_sender();
 
 int check_time_out_in_GET_tunnnel_after_last_sent(GET_packet_tunnel_t *t);
 int check_GET_tunnel_retransmit_time(GET_packet_tunnel_t *t);
+int check_transfer_with_bin_hash(transfer_t *t, chunk_hash *h);
 
 #endif
 

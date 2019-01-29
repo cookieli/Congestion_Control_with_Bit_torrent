@@ -28,12 +28,11 @@
 #define PATH_LEN 255
 #define FILE_LEN 255
 
-#define MAX_SEQ_NUM  (DATA_CHUNK_SIZE/PACKET_DATA_SIZE)
+#define MAX_SEQ_NUM  525//524+1:it means data chunk must send by 525 times
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
     typedef struct chunk_s{
         int id;//the chunk id
         char hexhash[HEX_HASH_SIZE+1];
@@ -46,6 +45,8 @@ extern "C" {
     chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config);
     void print_chunk(chunk_t *t);
     int compare_two_hex_hashes(char *a, char *b);
+
+    int check_chunk_with_bin_hash(chunk_t c, uint8_t *bin);
     /* Returns the number of chunks created, return -1 on error */
     int make_chunks(FILE *fp, uint8_t **chunk_hashes);  
 

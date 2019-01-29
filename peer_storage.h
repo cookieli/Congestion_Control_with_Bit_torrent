@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "data_transfer.h"
+#include "chunk.h"
 typedef enum peer_state_s{
     INITIAL_STATE,
     ASK_RESOURCE_LOCATION,
@@ -35,9 +36,15 @@ typedef struct peer_client_info_s{
     GET_packet_sender_t *GET_packet_sender;
 } peer_client_info_t;
 
-typedef struct peer_storage_pool{
+typedef struct peer_server_info_s{
+    chunk_t *chunks;
+    int chunk_num;
 
-    peer_temp_state_for_GET_t *peer_temp_state_for_GET;
+    transfer_t *transfers;
+    int transfer_num;
+} peer_server_info_t;
+
+typedef struct peer_storage_pool{
 
     //peer basic info
     chunk_hash *my_hashes;
@@ -46,9 +53,8 @@ typedef struct peer_storage_pool{
 
     peer_client_info_t *peer_client_info;
 
-    //peer client info
-
     //peer server info
+    peer_server_info_t *peer_server_info;
     
 } peer_storage_pool;
 
@@ -64,6 +70,7 @@ void set_peer_state(peer_state_t state);
 extern peer_storage_pool *p;
 
 void init_peer_client_info_in_pool();
+void init_peer_server_info_in_pool();
 void init_peer_storage_pool(bt_config_t *config);
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt);
 void send_WHOHAS_packet(int sockfd, bt_config_t *config);
@@ -72,7 +79,8 @@ void send_GET_packet_in_peer_pool(int sock);
 
 void set_peer_pool_hashes(bt_config_t *config);
 void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt);
-
+void load_one_chunk_in_pool_server_side_by_hash(chunk_hash *hash, bt_config_t *config);
+void set_peer_pool_server_own_chunk(chunk_hash *hashes, int len, bt_config_t *config);
 peer_temp_state_for_GET_t *init_peer_temp_state_for_GET();
 void add_hash_to_peer_temp_state_for_GET_in_pool(chunk_hash *hash);
 void set_WHOHAS_cache_in_pool();
@@ -86,6 +94,7 @@ void print_peer_storage_pool();
 void handle_WHOHAS_packet(int sock, contact_packet_t *packet, struct sockaddr_in to, socklen_t tolen);
 
 //void set_want_hashes(char *chunkfile);
+int check_hash_peer_own(chunk_hash *hash);
 void check_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from);
 int found_all_resource_locations();
 

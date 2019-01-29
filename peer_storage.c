@@ -32,6 +32,64 @@ void init_peer_client_info_in_pool(){
     pc->GET_packet_sender = NULL;
     p->peer_client_info = pc;
 }
+void init_peer_server_info_in_pool(){
+    peer_server_info_t *ps = (peer_server_info_t *)malloc(sizeof(peer_server_info_t));
+    ps->chunks = NULL;
+    ps->chunk_num = 0;
+    p->peer_server_info = ps;
+}
+
+void set_peer_pool_server_own_chunk(chunk_hash *hashes, int len, bt_config_t *config){
+    for(int i = 0; i < len; i++){
+        load_one_chunk_in_pool_server_side_by_hash(hashes + i, config);
+    }
+}
+
+void create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to){
+    peer_server_info_t *ps = p->peer_server_info;
+    transfer_t *the_transfer;
+    if(ps == NULL){
+        fprintf(stderr, "peer don't have server info ,you need to malloc\n");
+        return;
+    }
+    if(ps->transfers == NULL){
+        ps->transfers = (transfer_t *)malloc(sizeof(transfer_t));
+    }else{
+        for(int i = 0; i < transfer_num; i++){
+            if(!check_transfer_with_bin_hash(ps->transfers+i, hash)){
+                return;
+            }
+        }
+        ps->transfers = (transfer_t *)realloc(ps->transfers, sizeof(transfer_t) * (ps->transfer_num + 1));
+    }
+    the_transfer = ps->transfers + ps->transfer_num;
+    the_transfer->chunk = (chunk_t *)malloc(sizeof(chunk_t));
+    *(the_transfer->chunk) = load_chunk_from_tar(hash, config);
+    memset(the_transfer->send_seq, 0, MAX_SEQ_NUM);
+    the_transfer->have_sent = -1;
+    the_transfer->to = to;
+    ps->transfer_num += 1;
+}
+
+void load_one_chunk_in_pool_server_side_by_hash(chunk_hash *hash, bt_config_t *config){
+    peer_server_info_t *ps = p->peer_server_info;
+    if(ps == NULL){
+        fprintf(stderr, "peer don't have server info ,you need to malloc\n");
+        return;
+    }
+    if(ps->chunks == NULL){
+        ps->chunks = (chunk_t *)malloc(sizeof(chunk_t));
+    } else{
+        for(int i = 0; i < ps->chunk_num; i++){
+            if(!check_chunk_with_bin_hash(ps->chunks[i], hash->binary_hash)){
+                return;
+            }
+        }
+        ps->chunks = (chunk_t *)realloc(ps->chunks, sizeof(chunk_t) *(ps->chunk_num + 1));
+    }
+    ps->chunks[ps->chunk_num] = load_chunk_from_tar(hash, config);
+    ps->chunk_num += 1;
+}
 void free_peer_temp_state_for_GET_in_pool(){
     peer_client_info_t *pc = p->peer_client_info;
     free_peer_temp_state_for_GET(pc->peer_temp_state_for_GET);
@@ -52,6 +110,7 @@ void init_peer_storage_pool(bt_config_t *config){
     p->chunk_hash_num = 0;
     p->peer_state = INITIAL_STATE;
     p->peer_client_info = NULL;
+    p->peer_server_info = NULL;
     set_peer_pool_hashes(config);
 }
 
@@ -81,6 +140,8 @@ void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_fo
     pt->WHOHAS_num = length;
     //p->peer_state = ASK_RESOURCE_LOCATION;
 }
+
+
 
 void send_WHOHAS_packet(int sockfd, bt_config_t *config){
     peer_client_info_t *pc = p->peer_client_info;
@@ -257,6 +318,15 @@ hash_addr_map_t *init_hash_addr_map(int want_num, chunk_hash *want_hashes){
     return maps;
 }
 
+int check_hash_peer_own(chunk_hash *hash){
+    for(int i = 0; i < p->chunk_hash_num; i++){
+        if(two_hash_equal(*hash, p->my_hashes[i])){
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void free_hash_addr_map(hash_addr_map_t *maps, int maps_size){
     int i;
     for(i = 0; i < maps_size; i++){
@@ -340,3 +410,4 @@ void print_peer_hash_addr_map(){
     peer_client_info_t *pc = p->peer_client_info;
     print_hash_addr_map(pc->hash_maps, pc->maps_num);
 }
+

@@ -25,6 +25,12 @@ int make_chunks(FILE *fp, uint8_t *chunk_hashes[]) {
 
 	return numchunks;
 }
+int check_chunk_with_bin_hash(chunk_t c, uint8_t *bin){
+    for(int i = 0; i < BIN_HASH_SIZE; i++){
+        if(c.binhash[i] != bin[i])  return -1;
+    }
+    return 0;
+}
 chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
     chunk_t chunk;
     char buf[CHUNK_FILE_LINE_LEN];
