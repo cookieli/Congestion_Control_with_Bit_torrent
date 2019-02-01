@@ -38,6 +38,7 @@ chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
     char line[FILE_LEN];
     FILE *hc;
     FILE *master_chunk_f;
+    chunk.cursor = 0;
     binhash_copy(h->binary_hash, chunk.binhash);
     binary2hex(chunk.binhash, BIN_HASH_SIZE, chunk.hexhash);
     hc = fopen(config->has_chunk_file, "rb");
@@ -62,6 +63,7 @@ chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
     }
     fclose(master_chunk_f);
     read_chunk_data_by_id(master_chunk_filename, chunk.id, chunk.data);
+    chunk.cursor = DATA_CHUNK_SIZE - 1;
     return chunk;
 }
 void read_chunk_data_by_id(char *filename, int id, uint8_t *data){
@@ -95,6 +97,7 @@ void print_chunk(chunk_t *t){
         fprintf(stderr, "%c ", t->hexhash[i]);
     }
     fprintf(stderr, "\n");
+    fprintf(stderr, "the chunk current position: %d\n", t->cursor);
 }
 /**
  * str -- is the data you want to hash

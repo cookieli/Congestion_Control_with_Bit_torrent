@@ -27,6 +27,7 @@
 #include <time.h>
 #include "data_transfer.h"
 #include "chunk.h"
+#include "bt_server.h"
 void peer_run(bt_config_t *config);
 
 int main(int argc, char **argv) {
@@ -54,7 +55,7 @@ int main(int argc, char **argv) {
 }
 
 
-void process_inbound_udp(int sock) {
+void process_inbound_udp(int sock, bt_config_t *config) {
   #define BUFLEN 1500
   struct sockaddr_in from;
   socklen_t fromlen;
@@ -107,8 +108,12 @@ void process_inbound_udp(int sock) {
   case(2)://it is GET packet
       fprintf(stderr, "I have receive GET packet\n");
       print_GET_packet((GET_packet_t *)buf);
+      receive_GET_packet(sock, (GET_packet_t *)buf, config, from);
       break;
   case(3)://it is DATA packet
+      fprintf(stderr, "I have receive DATA packet\n");
+      receive_DATA_packet(sock, (DATA_packet_t *)buf, config, from);
+      print_GET_packet_sender();
       break;
   case(4)://it is ACK packet
       break;
@@ -178,7 +183,7 @@ void peer_run(bt_config_t *config) {
         nfds = select(sock+1, &readfds, NULL, NULL, &tv);
         if (nfds > 0) {//set this part  as state transfer
             if (FD_ISSET(sock, &readfds)) {
-                process_inbound_udp(sock);
+                process_inbound_udp(sock, config);
             }
             else if (FD_ISSET(STDIN_FILENO, &readfds)) {
                 process_user_input(STDIN_FILENO, userbuf, handle_user_input,"Currently unused");

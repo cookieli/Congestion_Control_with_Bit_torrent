@@ -33,6 +33,35 @@ void handle_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
     }
 }
 
+void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config, struct sockaddr_in from){
+    peer_client_info_t *pc = p->peer_client_info;
+    GET_packet_sender_t *sender = pc->GET_packet_sender;
+    GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
+    chunk_t c;
+    int data_len = packet->header.packet_len - packet->header.header_len;
+    if(tunnel->have_been_acked == 0){
+        tunnel->have_been_acked = 1;
+        binhash_copy(tunnel->packet->hash.binary_hash, c.binhash);
+        binary2hex(c.binhash, BIN_HASH_SIZE, c.hexhash);
+        c.id = find_hash_id_in_master_chunk_file(c.hexhash, config->chunk_file);
+        c.cursor = 0;
+        //sender->chunks[sender->cursor] = c;
+    } else{
+        c = sender->chunks[sender->cursor];
+    }
+    //read data into client_side
+    if(c.cursor == DATA_CHUNK_SIZE -1){
+        fprintf(stderr, "the chunk has receive all the data\n");
+        return ;
+    }
+    for(int i = 0; i < data_len; i++){
+        c.data[c.cursor + i] = packet->data[i];
+    }
+    c.cursor += data_len;
+    sender->chunks[sender->cursor] = c;
+    //send ack packet to the server
+}
+
 void handle_client_timeout(int sockfd, bt_config_t *config){
     //fprintf(stderr, "handle_client_timeout\n");
     if(get_peer_state() == ASK_RESOURCE_LOCATION){
@@ -43,22 +72,26 @@ void handle_client_timeout(int sockfd, bt_config_t *config){
         peer_client_info_t *pc = p->peer_client_info;
         GET_packet_sender_t *sender = pc->GET_packet_sender;
         GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
-        if(check_time_out_in_GET_tunnnel_after_last_sent(tunnel) && check_GET_tunnel_retransmit_time(tunnel) < 3){
-            fprintf(stderr, "You need to retransmit GET packet for hash: ");
-            print_chunk_hash(tunnel->packet->hash);
-            send_GET_tunnel(sockfd, tunnel);
-            return;
-        } else if(check_GET_tunnel_retransmit_time(tunnel) >= 3){
-            fprintf(stderr, "you need to find another source in peer for hash: ");
-            print_chunk_hash(tunnel->packet->hash);
-            add_hash_to_peer_temp_state_for_GET_in_pool(&tunnel->packet->hash);
-            set_WHOHAS_cache_in_pool();
-            set_peer_state(GET_ERROR_FOR_RESOURCE_LOCATION);
-            free_GET_tunnel(tunnel);
-            tunnel = (GET_packet_tunnel_t *)malloc(sizeof(GET_packet_tunnel_t));
-            tunnel->packet = NULL;
-            send_WHOHAS_packet(sockfd, config);
-            return;
+        if(tunnel->have_been_acked == 0){
+            if(check_time_out_in_GET_tunnnel_after_last_sent(tunnel) && check_GET_tunnel_retransmit_time(tunnel) < 3){
+                fprintf(stderr, "You need to retransmit GET packet for hash: ");
+                print_chunk_hash(tunnel->packet->hash);
+                send_GET_tunnel(sockfd, tunnel);
+                return;
+            } else if(check_GET_tunnel_retransmit_time(tunnel) >= 3){
+                fprintf(stderr, "you need to find another source in peer for hash: ");
+                print_chunk_hash(tunnel->packet->hash);
+                add_hash_to_peer_temp_state_for_GET_in_pool(&tunnel->packet->hash);
+                set_WHOHAS_cache_in_pool();
+                set_peer_state(GET_ERROR_FOR_RESOURCE_LOCATION);
+                free_GET_tunnel(tunnel);
+                tunnel = (GET_packet_tunnel_t *)malloc(sizeof(GET_packet_tunnel_t));
+                tunnel->packet = NULL;
+                send_WHOHAS_packet(sockfd, config);
+                return;
+            }
+        } else {
+            fprintf(stderr, "this get data has been received\n");
         }
     }
 }

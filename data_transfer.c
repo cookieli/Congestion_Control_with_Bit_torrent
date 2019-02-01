@@ -18,17 +18,28 @@ GET_packet_t *construct_GET_packet(chunk_hash  *hash){
     set_packet_hashes(hash, &packet->hash);
     return packet;
 }
+DATA_packet_t *construct_DATA_packet(uint8_t *data, int data_num, int seq_num){
+    DATA_packet_t *packet = (DATA_packet_t *)malloc(sizeof(DATA_packet_t) + data_num * sizeof(uint8_t));
+    uint16_t packet_len = 16 + data_num;
+    construct_packet_header(&packet->header, 3, packet_len, seq_num, 0);
+    for(int i = 0; i < data_num; i++){
+        packet->data[i] = data[i];
+    }
+    return packet;
+}
 void init_GET_packet_tunnel(GET_packet_tunnel_t *tunnel, GET_packet_t *packet, struct sockaddr_in addr){
     tunnel->packet = packet;
     tunnel->addr = addr;
     tunnel->begin_sent = 0;
     tunnel->retransmit_time = 0;
+    tunnel->have_been_acked = 0;
 }
 
 GET_packet_sender_t *init_GET_packet_sender(hash_addr_map_t *maps, int map_num){
     GET_packet_sender_t *sender = (GET_packet_sender_t *)malloc(sizeof(GET_packet_sender_t));
     sender->tunnels = construct_GET_tunnel(maps, map_num);
     sender->tunnel_num = map_num;
+    sender->chunks = (chunk_t *)malloc(sizeof(chunk_t) * map_num);
     sender->cursor = 0;
     return sender;
 }
@@ -88,6 +99,7 @@ void print_GET_packet_sender(){
     for(i = 0; i < s->tunnel_num; i++){
         print_GET_packet_tunnel(&s->tunnels[i]);
     }
+    print_chunk(s->chunks + s->cursor);
 }
 
 int check_time_out_in_GET_tunnnel_after_last_sent(GET_packet_tunnel_t *t){
@@ -103,4 +115,26 @@ int check_GET_tunnel_retransmit_time(GET_packet_tunnel_t *t){
 
 int check_transfer_with_bin_hash(transfer_t *t, chunk_hash *h){
     return check_chunk_with_bin_hash(*t->chunk, h->binary_hash);
+}
+
+//construct data packet from transfer
+void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_in from){
+    uint8_t data[PACKET_DATA_SIZE];
+    DATA_packet_t *d;
+    int size;
+    if(t->next_to_send < MAX_SEQ_NUM - 1){
+        for(int i = 0; i < PACKET_DATA_SIZE; i++){
+            data[i] = t->chunk->data[t->next_to_send * PACKET_DATA_SIZE+i];
+        }
+        size = PACKET_DATA_SIZE;
+    } else if(t->next_to_send == MAX_SEQ_NUM - 1){
+        for(int i = t->next_to_send * PACKET_DATA_SIZE; i < DATA_CHUNK_SIZE ; i++){
+            int j = i - t->next_to_send * PACKET_DATA_SIZE;
+            data[j] = t->chunk->data[i];
+        }
+        size = DATA_CHUNK_SIZE - t->next_to_send * PACKET_DATA_SIZE;
+    }
+    d = construct_DATA_packet(data, size, t->next_to_send + 1);
+    spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
+    t->next_to_send += 1;
 }

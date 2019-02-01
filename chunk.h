@@ -38,6 +38,7 @@ extern "C" {
         char hexhash[HEX_HASH_SIZE+1];
         uint8_t binhash[BIN_HASH_SIZE];
         uint8_t data[DATA_CHUNK_SIZE];
+        long cursor;
     } chunk_t;
 
     void binhash_copy(uint8_t *from, uint8_t *to);
