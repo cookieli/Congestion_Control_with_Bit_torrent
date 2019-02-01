@@ -16,6 +16,10 @@ typedef struct DATA_packet_s{
     uint8_t data[];
 } DATA_packet_t;
 
+typedef struct ACK_packet_s{
+    header_t header;
+} ACK_packet_t;
+
 
 typedef struct GET_packet_tunnel_s{
     GET_packet_t *packet;
@@ -35,7 +39,8 @@ typedef struct GET_packet_sender_s{
 typedef struct transfer_s{
     chunk_t *chunk;
     uint8_t send_seq[MAX_SEQ_NUM];
-    uint8_t next_to_send;
+    int next_to_send;
+    int seq_num;
     struct sockaddr_in to;
 } transfer_t;
 

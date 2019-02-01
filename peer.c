@@ -113,9 +113,11 @@ void process_inbound_udp(int sock, bt_config_t *config) {
   case(3)://it is DATA packet
       fprintf(stderr, "I have receive DATA packet\n");
       receive_DATA_packet(sock, (DATA_packet_t *)buf, config, from);
-      print_GET_packet_sender();
+      //print_GET_packet_sender();
       break;
   case(4)://it is ACK packet
+      fprintf(stderr, "I have receive ACK packet\n");
+      receive_ACK_packet(sock, (ACK_packet_t *)buf, from);
       break;
   case(5)://it is DENIED packet
       break;

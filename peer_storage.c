@@ -49,19 +49,23 @@ transfer_t *create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *co
     }
     if(ps->transfers == NULL){
         ps->transfers = (transfer_t *)malloc(sizeof(transfer_t));
+        ps->cursor = 0;
     }else{
         for(int i = 0; i < ps->transfer_num; i++){
             if(!check_transfer_with_bin_hash(ps->transfers+i, hash)){
+                ps->cursor = i;
                 return ps->transfers + i;
             }
         }
         ps->transfers = (transfer_t *)realloc(ps->transfers, sizeof(transfer_t) * (ps->transfer_num + 1));
+        ps->cursor = ps->transfer_num;
     }
     the_transfer = ps->transfers + ps->transfer_num;
     the_transfer->chunk = (chunk_t *)malloc(sizeof(chunk_t));
     *(the_transfer->chunk) = load_chunk_from_tar(hash, config);
     memset(the_transfer->send_seq, 0, MAX_SEQ_NUM);
     the_transfer->next_to_send = 0;
+    the_transfer->seq_num = 1;
     the_transfer->to = to;
     ps->transfer_num += 1;
     return the_transfer;

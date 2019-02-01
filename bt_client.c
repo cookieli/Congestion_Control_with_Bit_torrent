@@ -32,6 +32,11 @@ void handle_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
         }
     }
 }
+void send_ACK_packet(int sock, int ack_num, struct sockaddr_in from){
+    ACK_packet_t *packet = (ACK_packet_t *)malloc(sizeof(ACK_packet_t));
+    construct_packet_header(&packet->header, 4, 16, 0, ack_num);
+    spiffy_sendto(sock, packet, packet->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
+}
 
 void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config, struct sockaddr_in from){
     peer_client_info_t *pc = p->peer_client_info;
@@ -39,6 +44,11 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
     GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
     chunk_t c;
     int data_len = packet->header.packet_len - packet->header.header_len;
+    if(data_len == 0 && packet->header.seq_num == MAX_SEQ_NUM + 1){
+        fprintf(stderr, "i have receive all the data packet\n");
+        print_GET_packet_sender();
+        return;
+    }
     if(tunnel->have_been_acked == 0){
         tunnel->have_been_acked = 1;
         binhash_copy(tunnel->packet->hash.binary_hash, c.binhash);
@@ -52,14 +62,15 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
     //read data into client_side
     if(c.cursor == DATA_CHUNK_SIZE -1){
         fprintf(stderr, "the chunk has receive all the data\n");
-        return ;
     }
     for(int i = 0; i < data_len; i++){
         c.data[c.cursor + i] = packet->data[i];
     }
     c.cursor += data_len;
     sender->chunks[sender->cursor] = c;
+    
     //send ack packet to the server
+    send_ACK_packet(sockfd, packet->header.seq_num ,from);
 }
 
 void handle_client_timeout(int sockfd, bt_config_t *config){

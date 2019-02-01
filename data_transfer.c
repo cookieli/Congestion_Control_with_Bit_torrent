@@ -134,7 +134,6 @@ void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_i
         }
         size = DATA_CHUNK_SIZE - t->next_to_send * PACKET_DATA_SIZE;
     }
-    d = construct_DATA_packet(data, size, t->next_to_send + 1);
+    d = construct_DATA_packet(data, size, t->seq_num);
     spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
-    t->next_to_send += 1;
 }

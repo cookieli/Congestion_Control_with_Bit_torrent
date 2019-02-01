@@ -40,6 +40,7 @@ typedef struct peer_client_info_s{
 typedef struct peer_server_info_s{
     transfer_t *transfers;
     int transfer_num;
+    int cursor;
 } peer_server_info_t;
 
 typedef struct peer_storage_pool{
