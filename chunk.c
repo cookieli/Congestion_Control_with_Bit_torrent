@@ -25,6 +25,15 @@ int make_chunks(FILE *fp, uint8_t *chunk_hashes[]) {
 
 	return numchunks;
 }
+void create_output_file(char *output_file, chunk_t *chunks, int chunk_num){
+    FILE *fp = fopen(output_file, "w+");
+    chunk_t *c;
+    for(int i = 0; i < chunk_num; i++){
+        c = chunks + i;
+        fwrite(c->data, 1, DATA_CHUNK_SIZE, fp);;
+    }
+    fclose(fp);
+}
 int check_chunk_with_bin_hash(chunk_t c, uint8_t *bin){
     for(int i = 0; i < BIN_HASH_SIZE; i++){
         if(c.binhash[i] != bin[i])  return -1;
@@ -66,6 +75,8 @@ chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
     chunk.cursor = DATA_CHUNK_SIZE - 1;
     return chunk;
 }
+
+
 void read_chunk_data_by_id(char *filename, int id, uint8_t *data){
     FILE *fp = fopen(filename, "r");
     fseek(fp, DATA_CHUNK_SIZE*id, SEEK_SET);

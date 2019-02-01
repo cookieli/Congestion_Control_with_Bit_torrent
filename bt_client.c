@@ -47,6 +47,11 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
     if(data_len == 0 && packet->header.seq_num == MAX_SEQ_NUM + 1){
         fprintf(stderr, "i have receive all the data packet\n");
         print_GET_packet_sender();
+        increase_to_another_GET_packet_tunnel();
+        send_GET_packet_in_peer_pool(sockfd);
+        if(get_peer_state() == FOUND_ALL_DATA){
+            create_output_file(config->output_file, sender->chunks, sender->tunnel_num);
+        }
         return;
     }
     if(tunnel->have_been_acked == 0){

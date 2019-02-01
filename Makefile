@@ -35,7 +35,7 @@ node_list: node_list.o
 my_time: my_time.o
 
 clean:
-	rm -f *.o $(BINS) $(TESTBINS) utilities try_find_peer node_list example/*.tar example/*.chunks example/*.masterchunks example/*.haschunks example/nodes.map
+	rm -f *.o $(BINS) $(TESTBINS) utilities try_find_peer node_list example/*.tar example/*.chunks example/*.masterchunks example/*.haschunks example/nodes.map *.tar
 
 bt_parse.c: bt_parse.h
 

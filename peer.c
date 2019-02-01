@@ -135,13 +135,14 @@ void process_get(char *chunkfile, char *outputfile) {
 
 void handle_user_input(char *line, void *cbdata) {
   char chunkf[128], outf[128];
-
+  bt_config_t *config = (bt_config_t *)cbdata;
   bzero(chunkf, sizeof(chunkf));
   bzero(outf, sizeof(outf));
 
   if (sscanf(line, "GET %120s %120s", chunkf, outf)) {
     if (strlen(outf) > 0) {
       process_get(chunkf, outf);
+      strcpy(config->output_file, outf);
     }
   } else if (strcmp(line, "quit") == 0){
       fprintf(stderr, "the peer need to quit\n");
@@ -188,7 +189,7 @@ void peer_run(bt_config_t *config) {
                 process_inbound_udp(sock, config);
             }
             else if (FD_ISSET(STDIN_FILENO, &readfds)) {
-                process_user_input(STDIN_FILENO, userbuf, handle_user_input,"Currently unused");
+                process_user_input(STDIN_FILENO, userbuf, handle_user_input, config);
                 send_WHOHAS_packet(sock, config);
             }
         }else if(nfds == 0){

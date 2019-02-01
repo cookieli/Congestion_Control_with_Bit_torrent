@@ -142,11 +142,18 @@ void send_GET_packet_in_peer_pool(int sock){
     peer_client_info_t *pc = p->peer_client_info;
     GET_packet_sender_t *sender = pc->GET_packet_sender;
     if(sender->cursor == sender->tunnel_num){
-        fprintf(stderr, "have already send all tunnel(GET packet)");
+        fprintf(stderr, "have already send all tunnel(GET packet) and receive all the data\n");
+        set_peer_state(FOUND_ALL_DATA);
         return;
     }
     send_GET_tunnel(sock, sender->tunnels + sender->cursor);
     //sender->cursor += 1;
+}
+
+void increase_to_another_GET_packet_tunnel(){
+    peer_client_info_t *pc = p->peer_client_info;
+    GET_packet_sender_t *sender = pc->GET_packet_sender;
+    sender->cursor += 1;
 }
 
 void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt){

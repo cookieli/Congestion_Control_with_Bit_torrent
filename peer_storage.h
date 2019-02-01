@@ -14,7 +14,8 @@ typedef enum peer_state_s{
     ASK_RESOURCE_LOCATION,
     I_HAVE_RESOURCE,
     FOUND_ALL_RESOURCE,
-    GET_ERROR_FOR_RESOURCE_LOCATION
+    GET_ERROR_FOR_RESOURCE_LOCATION,
+    FOUND_ALL_DATA
 } peer_state_t;
 
 
@@ -74,7 +75,7 @@ void init_peer_storage_pool(bt_config_t *config);
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt);
 void send_WHOHAS_packet(int sockfd, bt_config_t *config);
 void send_GET_packet_in_peer_pool(int sock);
-
+void increase_to_another_GET_packet_tunnel();
 
 transfer_t *create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
 void set_peer_pool_hashes(bt_config_t *config);

@@ -17,7 +17,7 @@ void receive_GET_packet(int sockfd, GET_packet_t *packet, bt_config_t *config, s
     }
 }
 
-void receive_ACK_packet(int sockfd, DATA_packet_t *packet, struct sockaddr_in from){
+void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in from){
     peer_server_info_t *ps = p->peer_server_info;
     transfer_t *the_transfer = ps->transfers + ps->cursor;
     if(packet->header.ack_num == MAX_SEQ_NUM){

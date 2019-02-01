@@ -41,6 +41,7 @@ extern "C" {
         long cursor;
     } chunk_t;
 
+    void create_output_file(char *output_file, chunk_t *chunks, int chunk_num);
     void binhash_copy(uint8_t *from, uint8_t *to);
     void read_chunk_data_by_id(char *filename, int id, uint8_t *data);
     chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config);
