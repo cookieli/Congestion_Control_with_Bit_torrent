@@ -18,12 +18,16 @@ void receive_GET_packet(int sockfd, GET_packet_t *packet, bt_config_t *config, s
 }
 
 void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in from){
+    fprintf(stderr, "the ack num: %d\n", packet->header.ack_num);
     peer_server_info_t *ps = p->peer_server_info;
     transfer_t *the_transfer = ps->transfers + ps->cursor;
     if(packet->header.ack_num == MAX_SEQ_NUM){
         fprintf(stderr, "the client has receive all the data about one hash\n");
         DATA_packet_t *d = construct_DATA_packet(NULL, 0, MAX_SEQ_NUM+1);
         spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
+        return;
+    }
+    else if(packet->header.ack_num > MAX_SEQ_NUM){
         return;
     }
     int next_to_send = packet->header.ack_num ;

@@ -54,6 +54,8 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
             create_output_file(config->output_file, sender->chunks, sender->tunnel_num);
         }
         return;
+    } else if(packet->header.seq_num > MAX_SEQ_NUM + 1){
+        return;
     }
     if(tunnel->have_been_acked == 0){
         tunnel->have_been_acked = 1;
