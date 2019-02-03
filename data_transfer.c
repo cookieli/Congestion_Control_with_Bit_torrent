@@ -136,4 +136,20 @@ void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_i
     }
     d = construct_DATA_packet(data, size, t->seq_num);
     spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
+    
+}
+
+void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from){
+    sender_window_t win = t->sender_window;
+    int i = win.seq_index;
+    for(i = win.begin; i < win.begin + win.window_size; i++){
+        if(t->send_seq[i] == 0){
+            t->send_seq[i] = 1;
+            t->next_to_send = i;
+            t->seq_num = t->next_to_send + 1;
+            send_DATA_packet_from_transfer(sockfd, t, from);
+        } else if(t->send_seq[i] == 1 || t->send_seq[i] == 2){
+            fprintf(stderr, "it have been sent\n");
+        }
+    }
 }

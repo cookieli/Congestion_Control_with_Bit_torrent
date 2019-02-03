@@ -4,6 +4,7 @@
 #include "try_find_peer.h"
 #include "my_time.h"
 #include "chunk.h"
+#include "flow_control.h"
 //#include "peer_storage.h"
 
 typedef struct GET_packet_s{
@@ -39,9 +40,11 @@ typedef struct GET_packet_sender_s{
 typedef struct transfer_s{
     chunk_t *chunk;
     uint8_t send_seq[MAX_SEQ_NUM];
-    int next_to_send;
-    int seq_num;
+    uint32_t next_to_send;
+    uint32_t seq_num;
     struct sockaddr_in to;
+
+    sender_window_t sender_window;
 } transfer_t;
 
 
@@ -65,5 +68,6 @@ int check_transfer_with_bin_hash(transfer_t *t, chunk_hash *h);
 
 DATA_packet_t *construct_DATA_packet(uint8_t *data, int data_num, int seq_num);
 void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_in from);
+void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from);
 #endif
 

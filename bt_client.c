@@ -39,6 +39,7 @@ void send_ACK_packet(int sock, int ack_num, struct sockaddr_in from){
 }
 
 void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config, struct sockaddr_in from){
+    fprintf(stderr, "seq_num:%d, packet_len: %d", packet->header.seq_num, packet->header.packet_len);
     peer_client_info_t *pc = p->peer_client_info;
     GET_packet_sender_t *sender = pc->GET_packet_sender;
     GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;

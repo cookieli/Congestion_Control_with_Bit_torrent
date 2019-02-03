@@ -10,7 +10,7 @@ void receive_GET_packet(int sockfd, GET_packet_t *packet, bt_config_t *config, s
     if(get_peer_state() == I_HAVE_RESOURCE){
         if(check_hash_peer_own(&packet->hash)){
             t = create_new_transfer_in_server_pool(&packet->hash, config, from);
-            send_DATA_packet_from_transfer(sockfd, t, from);
+            send_DATA_packet_in_window(sockfd, t, from);
         } else{
             fprintf(stderr, "this GET packet send wrong place\n");
         }
@@ -26,8 +26,9 @@ void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in fro
         spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
         return;
     }
-    the_transfer->seq_num += 1;
-    the_transfer->next_to_send += 1;
-    send_DATA_packet_from_transfer(sockfd, the_transfer, from);
+    int next_to_send = packet->header.ack_num ;
+    
+    adjust_sender_window(&the_transfer->sender_window, next_to_send);
+    send_DATA_packet_in_window(sockfd, the_transfer, from);
 }
 
