@@ -13,7 +13,8 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include "try_find_peer.h"
-#include "try_find_peer.h"
+//#include "try_find_peer.h"
+//#include "data_transfer.h"
 
 #define BT_CHUNK_SIZE (512 * 1024)
 
@@ -39,9 +40,11 @@ extern "C" {
         uint8_t binhash[BIN_HASH_SIZE];
         uint8_t data[DATA_CHUNK_SIZE];
         long cursor;
+
+        //uint8_t seq_bits[MAX_SEQ_NUM];
     } chunk_t;
 
-    void create_output_file(char *output_file, chunk_t *chunks, int chunk_num);
+    //void create_output_file(char *output_file, GET_packet_sender_t *sender);
     void binhash_copy(uint8_t *from, uint8_t *to);
     void read_chunk_data_by_id(char *filename, int id, uint8_t *data);
     chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config);

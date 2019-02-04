@@ -5,6 +5,7 @@
 #include <stdlib.h> // for malloc
 #include <string.h> // for memset
 #include "try_find_peer.h"
+#include "data_transfer.h"
 #include "utilities.h"
 #include "bt_parse.h"
 /**
@@ -25,15 +26,7 @@ int make_chunks(FILE *fp, uint8_t *chunk_hashes[]) {
 
 	return numchunks;
 }
-void create_output_file(char *output_file, chunk_t *chunks, int chunk_num){
-    FILE *fp = fopen(output_file, "w+");
-    chunk_t *c;
-    for(int i = 0; i < chunk_num; i++){
-        c = chunks + i;
-        fwrite(c->data, 1, DATA_CHUNK_SIZE, fp);;
-    }
-    fclose(fp);
-}
+
 int check_chunk_with_bin_hash(chunk_t c, uint8_t *bin){
     for(int i = 0; i < BIN_HASH_SIZE; i++){
         if(c.binhash[i] != bin[i])  return -1;
@@ -73,6 +66,7 @@ chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
     fclose(master_chunk_f);
     read_chunk_data_by_id(master_chunk_filename, chunk.id, chunk.data);
     chunk.cursor = DATA_CHUNK_SIZE - 1;
+    //memset(chunk.seq_bits, 0, MAX_SEQ_NUM);
     return chunk;
 }
 

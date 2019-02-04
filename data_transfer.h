@@ -28,6 +28,9 @@ typedef struct GET_packet_tunnel_s{
     mytime_t begin_sent;
     int retransmit_time;
     int have_been_acked;
+
+
+    chunk_t *chunk;
 } GET_packet_tunnel_t;
 
 typedef struct GET_packet_sender_s{
@@ -69,5 +72,6 @@ int check_transfer_with_bin_hash(transfer_t *t, chunk_hash *h);
 DATA_packet_t *construct_DATA_packet(uint8_t *data, int data_num, int seq_num);
 void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_in from);
 void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from);
+void create_output_file(char *output_file, GET_packet_sender_t *sender);
 #endif
 

@@ -33,13 +33,14 @@ void init_GET_packet_tunnel(GET_packet_tunnel_t *tunnel, GET_packet_t *packet, s
     tunnel->begin_sent = 0;
     tunnel->retransmit_time = 0;
     tunnel->have_been_acked = 0;
+    tunnel->chunk = NULL;
 }
 
 GET_packet_sender_t *init_GET_packet_sender(hash_addr_map_t *maps, int map_num){
     GET_packet_sender_t *sender = (GET_packet_sender_t *)malloc(sizeof(GET_packet_sender_t));
     sender->tunnels = construct_GET_tunnel(maps, map_num);
     sender->tunnel_num = map_num;
-    sender->chunks = (chunk_t *)malloc(sizeof(chunk_t) * map_num);
+    //sender->chunks = (chunk_t *)malloc(sizeof(chunk_t) * map_num);
     sender->cursor = 0;
     return sender;
 }
@@ -89,6 +90,9 @@ void print_GET_packet_tunnel(GET_packet_tunnel_t *t){
     mytime_t now = millitime(NULL);
     fprintf(stderr, "time spent: %ld\n", now - t->begin_sent);
     fprintf(stderr, "limit times: %d\n", t->retransmit_time);
+    if(t->chunk != NULL){
+        print_chunk(t->chunk);
+    }
 }
 
 void print_GET_packet_sender(){
@@ -99,7 +103,7 @@ void print_GET_packet_sender(){
     for(i = 0; i < s->tunnel_num; i++){
         print_GET_packet_tunnel(&s->tunnels[i]);
     }
-    print_chunk(s->chunks + s->cursor);
+    //print_chunk(s->chunks + s->cursor);
 }
 
 int check_time_out_in_GET_tunnnel_after_last_sent(GET_packet_tunnel_t *t){
@@ -154,4 +158,14 @@ void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in fr
             fprintf(stderr, "it have been sent\n");
         }
     }
+}
+
+void create_output_file(char *output_file, GET_packet_sender_t *sender){
+    FILE *fp = fopen(output_file, "w+");
+    chunk_t *c;
+    for(int i = 0; i < sender->tunnel_num; i++){
+        c = (sender->tunnels + i)->chunk;
+        fwrite(c->data, 1, DATA_CHUNK_SIZE, fp);;
+    }
+    fclose(fp);
 }

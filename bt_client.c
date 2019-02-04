@@ -6,6 +6,7 @@
 #include "peer.h"
 #include "data_transfer.h"
 #include "try_find_peer.h"
+#include "spiffy.h"
 void handle_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
     if(get_peer_state() == ASK_RESOURCE_LOCATION){
         check_IHAVE_packet(packet, from);
@@ -51,7 +52,7 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
         increase_to_another_GET_packet_tunnel();
         send_GET_packet_in_peer_pool(sockfd);
         if(get_peer_state() == FOUND_ALL_DATA){
-            create_output_file(config->output_file, sender->chunks, sender->tunnel_num);
+            create_output_file(config->output_file, sender);
         }
         return;
     } else if(packet->header.seq_num > MAX_SEQ_NUM + 1){
@@ -59,13 +60,14 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
     }
     if(tunnel->have_been_acked == 0){
         tunnel->have_been_acked = 1;
+        tunnel->chunk = (chunk_t *)malloc(sizeof(chunk_t));
         binhash_copy(tunnel->packet->hash.binary_hash, c.binhash);
         binary2hex(c.binhash, BIN_HASH_SIZE, c.hexhash);
         c.id = find_hash_id_in_master_chunk_file(c.hexhash, config->chunk_file);
         c.cursor = 0;
         //sender->chunks[sender->cursor] = c;
     } else{
-        c = sender->chunks[sender->cursor];
+        c = *tunnel->chunk;
     }
     //read data into client_side
     if(c.cursor == DATA_CHUNK_SIZE -1){
@@ -75,7 +77,7 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
         c.data[c.cursor + i] = packet->data[i];
     }
     c.cursor += data_len;
-    sender->chunks[sender->cursor] = c;
+    *tunnel->chunk = c;
     
     //send ack packet to the server
     send_ACK_packet(sockfd, packet->header.seq_num ,from);
