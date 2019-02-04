@@ -10,13 +10,13 @@ not acked ,check time and retransmit or wait it;
 begin start value is 0 means first packet to send
 ******************************/
 
-typedef struct sender_window_s{
+typedef struct flow_window_s{
     uint32_t begin;
     uint32_t window_size;
     uint32_t seq_index;
-} sender_window_t;
+} flow_window_t;
 
 
-void init_sender_window(sender_window_t *s);
-void adjust_sender_window(sender_window_t *s, int begin_index);
+void init_sender_window(flow_window_t *s);
+void adjust_sender_window(flow_window_t *s, int begin_index);
 #endif

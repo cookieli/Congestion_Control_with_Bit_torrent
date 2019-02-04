@@ -46,7 +46,7 @@ typedef struct transfer_s{
     uint32_t seq_num;
     struct sockaddr_in to;
 
-    sender_window_t sender_window;
+    flow_window_t sender_window;
 } transfer_t;
 
 

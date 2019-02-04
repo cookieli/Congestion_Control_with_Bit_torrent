@@ -146,7 +146,7 @@ void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_i
 }
 
 void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from){
-    sender_window_t win = t->sender_window;
+    flow_window_t win = t->sender_window;
     chunk_t *c = t->chunk;
     int i = win.seq_index;
     for(i = win.begin; i < win.begin + win.window_size; i++){
