@@ -41,7 +41,7 @@ extern "C" {
         uint8_t data[DATA_CHUNK_SIZE];
         long cursor;
 
-        //uint8_t seq_bits[MAX_SEQ_NUM];
+        uint8_t seq_bits[MAX_SEQ_NUM];
     } chunk_t;
 
     //void create_output_file(char *output_file, GET_packet_sender_t *sender);

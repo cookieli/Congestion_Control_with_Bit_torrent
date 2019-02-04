@@ -63,7 +63,7 @@ transfer_t *create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *co
     the_transfer = ps->transfers + ps->transfer_num;
     the_transfer->chunk = (chunk_t *)malloc(sizeof(chunk_t));
     *(the_transfer->chunk) = load_chunk_from_tar(hash, config);
-    memset(the_transfer->send_seq, 0, MAX_SEQ_NUM);
+    //memset(the_transfer->send_seq, 0, MAX_SEQ_NUM);
     the_transfer->next_to_send = 0;
     the_transfer->seq_num = 1;
     init_sender_window(&the_transfer->sender_window);

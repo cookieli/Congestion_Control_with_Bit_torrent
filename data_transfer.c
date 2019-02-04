@@ -147,14 +147,15 @@ void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_i
 
 void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from){
     sender_window_t win = t->sender_window;
+    chunk_t *c = t->chunk;
     int i = win.seq_index;
     for(i = win.begin; i < win.begin + win.window_size; i++){
-        if(t->send_seq[i] == 0){
-            t->send_seq[i] = 1;
+        if(c->seq_bits[i] == 0){
+            c->seq_bits[i] = 1;
             t->next_to_send = i;
             t->seq_num = t->next_to_send + 1;
             send_DATA_packet_from_transfer(sockfd, t, from);
-        } else if(t->send_seq[i] == 1 || t->send_seq[i] == 2){
+        } else if(c->seq_bits[i] == 1 || c->seq_bits[i] == 2){
             fprintf(stderr, "it have been sent\n");
         }
     }

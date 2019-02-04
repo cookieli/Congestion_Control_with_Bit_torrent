@@ -42,7 +42,6 @@ typedef struct GET_packet_sender_s{
 
 typedef struct transfer_s{
     chunk_t *chunk;
-    uint8_t send_seq[MAX_SEQ_NUM];
     uint32_t next_to_send;
     uint32_t seq_num;
     struct sockaddr_in to;

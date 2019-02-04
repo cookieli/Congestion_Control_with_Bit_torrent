@@ -66,7 +66,7 @@ chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
     fclose(master_chunk_f);
     read_chunk_data_by_id(master_chunk_filename, chunk.id, chunk.data);
     chunk.cursor = DATA_CHUNK_SIZE - 1;
-    //memset(chunk.seq_bits, 0, MAX_SEQ_NUM);
+    memset(chunk.seq_bits, 0, MAX_SEQ_NUM);
     return chunk;
 }
 
