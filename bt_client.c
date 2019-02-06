@@ -40,11 +40,14 @@ void send_ACK_packet(int sock, int ack_num, struct sockaddr_in from){
 }
 
 void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config, struct sockaddr_in from){
-    fprintf(stderr, "seq_num:%d, packet_len: %d", packet->header.seq_num, packet->header.packet_len);
+    fprintf(stderr, "seq_num:%d, packet_len: %d\n", packet->header.seq_num, packet->header.packet_len);
     peer_client_info_t *pc = p->peer_client_info;
     GET_packet_sender_t *sender = pc->GET_packet_sender;
     GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
+    flow_window_t win;
+    uint32_t data_position = packet->header.seq_num - 1;
     chunk_t c;
+    int ack_num;
     int data_len = packet->header.packet_len - packet->header.header_len;
     if(data_len == 0 && packet->header.seq_num == MAX_SEQ_NUM + 1){
         fprintf(stderr, "i have receive all the data packet\n");
@@ -60,29 +63,40 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
     }
     if(tunnel->have_been_acked == 0){
         tunnel->have_been_acked = 1;
+        init_flow_window(&tunnel->receive_window);
         tunnel->chunk = (chunk_t *)malloc(sizeof(chunk_t));
         binhash_copy(tunnel->packet->hash.binary_hash, c.binhash);
         binary2hex(c.binhash, BIN_HASH_SIZE, c.hexhash);
         c.id = find_hash_id_in_master_chunk_file(c.hexhash, config->chunk_file);
+        memset(c.seq_bits, 0, MAX_SEQ_NUM);
         c.cursor = 0;
-        //sender->chunks[sender->cursor] = c;
     } else{
         c = *tunnel->chunk;
     }
-    //read data into client_side
-    if(c.cursor == DATA_CHUNK_SIZE -1){
-        fprintf(stderr, "the chunk has receive all the data\n");
+    win = tunnel->receive_window;
+    if(!num_in_flow_window(data_position, win)){
+        return;
     }
-    for(int i = 0; i < data_len; i++){
-        c.data[c.cursor + i] = packet->data[i];
-    }
-    c.cursor += data_len;
+    memcpy(c.data + data_position*PACKET_DATA_SIZE, packet->data, data_len);
     *tunnel->chunk = c;
-    
+    tunnel->chunk->seq_bits[data_position] = 1;
+    ack_num = find_biggest_ack_num_in_window(win, tunnel->chunk);
+    fprintf(stderr, "the ack num is: %d\n", ack_num);
+    adjust_flow_window(&tunnel->receive_window, ack_num - 1);
     //send ack packet to the server
-    send_ACK_packet(sockfd, packet->header.seq_num ,from);
+    send_ACK_packet(sockfd, ack_num ,from);
 }
-
+uint32_t find_biggest_ack_num_in_window(flow_window_t win, chunk_t *chunk){
+    uint32_t i;
+    for(i = win.begin; (i < win.begin + win.window_size) && (i < MAX_SEQ_NUM); i++){
+        //fprintf(stderr, "%d", chunk->seq_bits[i]);
+        if(chunk->seq_bits[i] == 0)  break;
+    }
+    if(i >= MAX_SEQ_NUM){
+        return MAX_SEQ_NUM;
+    }
+    return i-1+1;
+}
 void handle_client_timeout(int sockfd, bt_config_t *config){
     //fprintf(stderr, "handle_client_timeout\n");
     if(get_peer_state() == ASK_RESOURCE_LOCATION){

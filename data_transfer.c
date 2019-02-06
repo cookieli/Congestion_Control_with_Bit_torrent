@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include "my_time.h"
 #include "peer_storage.h"
+#include <string.h>
 
 //packet_type = 2
 GET_packet_t *construct_GET_packet(chunk_hash  *hash){
@@ -142,21 +143,44 @@ void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_i
     }
     d = construct_DATA_packet(data, size, t->seq_num);
     spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
-    
+}
+// seq_num means the order of data, start from first, actually the data start from zero
+void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int sockfd, struct sockaddr_in from){
+    DATA_packet_t *d;
+    int size = PACKET_DATA_SIZE;
+    uint8_t data[PACKET_DATA_SIZE];
+    uint32_t data_position = seq_num - 1;
+    uint32_t next_to_send = data_position +1;
+    memcpy(data, &(t->chunk->data[next_to_send*PACKET_DATA_SIZE]), PACKET_DATA_SIZE);
+    d = construct_DATA_packet(data, size, seq_num);
+    spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr_in *)(&from), sizeof(struct sockaddr_in));
+}
+
+void set_data_been_acked(int ack_num, transfer_t *t){
+    //t->chunk->seq_bits[ack_num - 1] = 2;
+    for(int i = 0; i < ack_num; i++){
+        t->chunk->seq_bits[i] = 2;
+    }
 }
 
 void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from){
     flow_window_t win = t->sender_window;
     chunk_t *c = t->chunk;
     int i = win.seq_index;
+    //t->time_stamp = millitime(NULL);
     for(i = win.begin; i < win.begin + win.window_size; i++){
-        if(c->seq_bits[i] == 0){
+        if((c->seq_bits[i] == 0)){ //&& (i != 517)){
             c->seq_bits[i] = 1;
             t->next_to_send = i;
             t->seq_num = t->next_to_send + 1;
             send_DATA_packet_from_transfer(sockfd, t, from);
         } else if(c->seq_bits[i] == 1 || c->seq_bits[i] == 2){
-            fprintf(stderr, "it have been sent\n");
+            //fprintf(stderr, "it have been sent\n");
+            if(c->seq_bits[i] == 1){
+                fprintf(stderr, "the data has been sent but not acked\n");
+            } else if(c->seq_bits[i] == 2){
+                fprintf(stderr, "the data has been acked\n");
+            }
         }
     }
 }

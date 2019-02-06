@@ -17,6 +17,7 @@ typedef struct flow_window_s{
 } flow_window_t;
 
 
-void init_sender_window(flow_window_t *s);
-void adjust_sender_window(flow_window_t *s, int begin_index);
+void init_flow_window(flow_window_t *s);
+void adjust_flow_window(flow_window_t *s, int begin_index);
+int num_in_flow_window(int num, flow_window_t win);
 #endif

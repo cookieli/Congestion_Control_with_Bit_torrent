@@ -21,7 +21,9 @@ void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in fro
     fprintf(stderr, "the ack num: %d\n", packet->header.ack_num);
     peer_server_info_t *ps = p->peer_server_info;
     transfer_t *the_transfer = ps->transfers + ps->cursor;
+    flow_window_t win = the_transfer->sender_window;
     if(packet->header.ack_num == MAX_SEQ_NUM){
+        set_data_been_acked(packet->header.ack_num, the_transfer);
         fprintf(stderr, "the client has receive all the data about one hash\n");
         DATA_packet_t *d = construct_DATA_packet(NULL, 0, MAX_SEQ_NUM+1);
         spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
@@ -29,10 +31,22 @@ void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in fro
     }
     else if(packet->header.ack_num > MAX_SEQ_NUM){
         return;
+    } else if(packet->header.ack_num == win.begin){
+        if(the_transfer->retransmit_time >=3){
+            fprintf(stderr, "we have receive 3 same ack ");
+            fprintf(stderr, "now we need to retransmit the data: %d\n", packet->header.ack_num);
+            send_DATA_packet_from_transfer_by_seq(the_transfer, packet->header.ack_num+1, sockfd, from);
+            the_transfer->retransmit_time = 0;
+            //exit(-1);
+            return;
+        }
+        fprintf(stderr, "the data: %d receiver dont' received\n", packet->header.ack_num);
+        the_transfer->retransmit_time += 1;
+    } else{
+        set_data_been_acked(packet->header.ack_num, the_transfer);
     }
-    int next_to_send = packet->header.ack_num ;
-    
-    adjust_sender_window(&the_transfer->sender_window, next_to_send);
+    int next_to_send = packet->header.ack_num;
+    adjust_flow_window(&the_transfer->sender_window, next_to_send);
     send_DATA_packet_in_window(sockfd, the_transfer, from);
 }
 
