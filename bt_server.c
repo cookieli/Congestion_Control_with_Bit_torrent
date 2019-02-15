@@ -42,11 +42,13 @@ void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in fro
         }
         fprintf(stderr, "the data: %d receiver dont' received\n", packet->header.ack_num);
         the_transfer->retransmit_time += 1;
+        return;
     } else{
         set_data_been_acked(packet->header.ack_num, the_transfer);
     }
     int next_to_send = packet->header.ack_num;
     adjust_flow_window(&the_transfer->sender_window, next_to_send);
     send_DATA_packet_in_window(sockfd, the_transfer, from);
+    the_transfer->retransmit_time = 0;
 }
 

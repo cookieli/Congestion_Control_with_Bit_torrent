@@ -3,6 +3,7 @@
 #include "bt_client.h"
 #include "bt_parse.h"
 #include <time.h>
+#include <string.h>
 #include "peer.h"
 #include "data_transfer.h"
 #include "try_find_peer.h"
@@ -37,6 +38,7 @@ void send_ACK_packet(int sock, int ack_num, struct sockaddr_in from){
     ACK_packet_t *packet = (ACK_packet_t *)malloc(sizeof(ACK_packet_t));
     construct_packet_header(&packet->header, 4, 16, 0, ack_num);
     spiffy_sendto(sock, packet, packet->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
+    free(packet);
 }
 
 void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config, struct sockaddr_in from){
@@ -77,20 +79,29 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
     if(!num_in_flow_window(data_position, win)){
         return;
     }
-    memcpy(c.data + data_position*PACKET_DATA_SIZE, packet->data, data_len);
+    //memcpy(c.data + data_position*PACKET_DATA_SIZE, packet->data, data_len);
+    if(tunnel->chunk->seq_bits[data_position] == 0){
+        for(int i = 0; i < data_len; i++){
+            c.data[data_position*PACKET_DATA_SIZE + i] = packet->data[i];
+        }
+    }
     *tunnel->chunk = c;
     tunnel->chunk->seq_bits[data_position] = 1;
     ack_num = find_biggest_ack_num_in_window(win, tunnel->chunk);
     fprintf(stderr, "the ack num is: %d\n", ack_num);
-    adjust_flow_window(&tunnel->receive_window, ack_num - 1);
+    adjust_flow_window(&tunnel->receive_window, ack_num);
     //send ack packet to the server
     send_ACK_packet(sockfd, ack_num ,from);
 }
 uint32_t find_biggest_ack_num_in_window(flow_window_t win, chunk_t *chunk){
     uint32_t i;
     for(i = win.begin; (i < win.begin + win.window_size) && (i < MAX_SEQ_NUM); i++){
-        //fprintf(stderr, "%d", chunk->seq_bits[i]);
+        // fprintf(stderr, "%d: %d\n", i, chunk->seq_bits[i]);
         if(chunk->seq_bits[i] == 0)  break;
+    }
+    if(chunk->seq_bits[i] == 1){
+        i = i+1;
+        //return MAX_SEQ_NUM;
     }
     if(i >= MAX_SEQ_NUM){
         return MAX_SEQ_NUM;

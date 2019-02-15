@@ -78,9 +78,9 @@ void set_hash_value(chunk_hash *hash, char *ascii){
     free(temp);
 }
 uint8_t* to_binary_hash(char *ascii){
-    uint8_t *hash = (uint8_t *)malloc(SHA1_HASH_SIZE * sizeof(uint8_t));
+    uint8_t *hash = (uint8_t *)malloc((SHA1_HASH_SIZE+1) * sizeof(uint8_t));
     int len = SHA1_HASH_SIZE*2 + 1;
-    hex2binary(ascii, len, hash);
+    hex2binary(ascii, strlen(ascii), hash);
 #ifdef _TEST_UTILITIES
     char ascii2[len];
     for(int i = 0; i < SHA1_HASH_SIZE; i++){

@@ -67,7 +67,11 @@ contact_packet_t **construct_WHOHAS_packet(char *chunkfile, int *packets_length)
         hash_cursor += hash_num;
         length -= hash_num;
     }
+
     free_hashes(hashes, length);
+    hashes = NULL;
+    //fprintf(stderr, "error about construct_WHOHAS_packet\n");
+    //print_chunk_hash(*hashes[0]);
     return packets;
 }
 void free_contact_packets(contact_packet_t **packets, int len){

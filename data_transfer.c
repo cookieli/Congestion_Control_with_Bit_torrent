@@ -127,6 +127,9 @@ void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_i
     uint8_t data[PACKET_DATA_SIZE];
     DATA_packet_t *d;
     int size;
+    fprintf(stderr,"data:");
+    //print_chunk(t->chunk);
+    fprintf(stderr, "\n");
     if(t->next_to_send < MAX_SEQ_NUM - 1){
         for(int i = 0; i < PACKET_DATA_SIZE; i++){
             data[i] = t->chunk->data[t->next_to_send * PACKET_DATA_SIZE+i];
@@ -143,6 +146,7 @@ void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_i
     }
     d = construct_DATA_packet(data, size, t->seq_num);
     spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
+    free(d);
 }
 // seq_num means the order of data, start from first, actually the data start from zero
 void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int sockfd, struct sockaddr_in from){
@@ -151,9 +155,10 @@ void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int 
     uint8_t data[PACKET_DATA_SIZE];
     uint32_t data_position = seq_num - 1;
     uint32_t next_to_send = data_position +1;
-    memcpy(data, &(t->chunk->data[next_to_send*PACKET_DATA_SIZE]), PACKET_DATA_SIZE);
+    memcpy(data, &(t->chunk->data[data_position*PACKET_DATA_SIZE]), PACKET_DATA_SIZE);
     d = construct_DATA_packet(data, size, seq_num);
-    spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr_in *)(&from), sizeof(struct sockaddr_in));
+    spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
+    free(d);
 }
 
 void set_data_been_acked(int ack_num, transfer_t *t){
@@ -168,8 +173,9 @@ void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in fr
     chunk_t *c = t->chunk;
     int i = win.seq_index;
     //t->time_stamp = millitime(NULL);
+    mytime_t current_time;
     for(i = win.begin; i < win.begin + win.window_size; i++){
-        if((c->seq_bits[i] == 0)){ //&& (i != 517)){
+        if((c->seq_bits[i] == 0)){
             c->seq_bits[i] = 1;
             t->next_to_send = i;
             t->seq_num = t->next_to_send + 1;

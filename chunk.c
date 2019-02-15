@@ -102,7 +102,11 @@ void print_chunk(chunk_t *t){
         fprintf(stderr, "%c ", t->hexhash[i]);
     }
     fprintf(stderr, "\n");
-    fprintf(stderr, "the chunk current position: %d\n", t->cursor);
+    fprintf(stderr, "data: ");
+    // for(int i = 0; i < DATA_CHUNK_SIZE; i++){
+    //    fprintf(stderr, " %d", t->data[i]);
+    //}
+    //fprintf(stderr, "the chunk current position: %d\n", t->cursor);
 }
 /**
  * str -- is the data you want to hash
