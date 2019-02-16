@@ -200,3 +200,12 @@ void create_output_file(char *output_file, GET_packet_sender_t *sender){
     }
     fclose(fp);
 }
+
+int transfer_has_timeout(transfer_t *t){
+    mytime_t now = millitime(NULL);
+    if((now - t->time_stamp) > t->rtt){
+        fprintf(stderr, "time has used out\n");
+        return 1;
+    }
+    return 0;
+}

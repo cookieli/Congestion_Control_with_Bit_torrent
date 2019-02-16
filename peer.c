@@ -194,6 +194,7 @@ void peer_run(bt_config_t *config) {
             }
         }else if(nfds == 0){
             handle_client_timeout(sock, config);
+            handle_server_timeout(sock);
         }
     }
 }

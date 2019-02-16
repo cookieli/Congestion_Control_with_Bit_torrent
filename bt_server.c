@@ -4,12 +4,24 @@
 #include "peer_storage.h"
 #include "bt_server.h"
 #include "spiffy.h"
+void handle_server_timeout(int sockfd){
+    if(get_peer_state() == I_HAVE_RESOURCE){
+        //if()
+        peer_server_info_t *ps = p->peer_server_info;
+        transfer_t *t = ps->transfers + ps->cursor;
+        if(transfer_has_timeout(t)){
+            send_DATA_packet_in_window(sockfd, t, t->to);
+        }
+    }
+}
+
 void receive_GET_packet(int sockfd, GET_packet_t *packet, bt_config_t *config, struct sockaddr_in from){
     //DATA_packet_t *d;
     transfer_t *t;
     if(get_peer_state() == I_HAVE_RESOURCE){
         if(check_hash_peer_own(&packet->hash)){
             t = create_new_transfer_in_server_pool(&packet->hash, config, from);
+            t->time_stamp = millitime(NULL);
             send_DATA_packet_in_window(sockfd, t, from);
         } else{
             fprintf(stderr, "this GET packet send wrong place\n");
@@ -21,6 +33,7 @@ void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in fro
     fprintf(stderr, "the ack num: %d\n", packet->header.ack_num);
     peer_server_info_t *ps = p->peer_server_info;
     transfer_t *the_transfer = ps->transfers + ps->cursor;
+    the_transfer->time_stamp = millitime(NULL);
     flow_window_t win = the_transfer->sender_window;
     if(packet->header.ack_num == MAX_SEQ_NUM){
         set_data_been_acked(packet->header.ack_num, the_transfer);

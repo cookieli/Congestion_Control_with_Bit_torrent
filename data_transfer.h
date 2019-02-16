@@ -74,6 +74,8 @@ int check_time_out_in_GET_tunnnel_after_last_sent(GET_packet_tunnel_t *t);
 int check_GET_tunnel_retransmit_time(GET_packet_tunnel_t *t);
 int check_transfer_with_bin_hash(transfer_t *t, chunk_hash *h);
 
+int transfer_has_timeout(transfer_t *t);
+
 
 DATA_packet_t *construct_DATA_packet(uint8_t *data, int data_num, int seq_num);
 void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_in from);
@@ -81,5 +83,6 @@ void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in fr
 void set_data_been_acked(int ack_num, transfer_t *t);
 void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int sockfd, struct sockaddr_in from);
 void create_output_file(char *output_file, GET_packet_sender_t *sender);
+int transfer_has_timeout(transfer_t *t);
 #endif
 
