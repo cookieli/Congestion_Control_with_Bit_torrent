@@ -11,6 +11,8 @@ typedef struct node_s {
     struct node_s *next;
 } node_t;
 
+
+
 //extern node_t *node_list;
 
 node_t *init_node_list();

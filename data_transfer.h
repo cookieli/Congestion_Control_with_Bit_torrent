@@ -50,9 +50,8 @@ typedef struct transfer_s{
 
     mytime_t time_stamp;
     mytime_t rtt;
-
     int retransmit_time;
-
+    
     flow_window_t sender_window;
 } transfer_t;
 
@@ -84,5 +83,10 @@ void set_data_been_acked(int ack_num, transfer_t *t);
 void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int sockfd, struct sockaddr_in from);
 void create_output_file(char *output_file, GET_packet_sender_t *sender);
 int transfer_has_timeout(transfer_t *t);
+
+void init_transfer(transfer_t *the_transfer,chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
+int cmp_transfer_by_sockaddr(void *a, void *b);
+
+void remove_transfer(void *data);
 #endif
 

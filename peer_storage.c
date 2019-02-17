@@ -36,7 +36,27 @@ void init_peer_server_info_in_pool(){
     peer_server_info_t *ps = (peer_server_info_t *)malloc(sizeof(peer_server_info_t));
     ps->transfers = NULL;
     ps->transfer_num = 0;
+    ps->transfer_head = NULL;
     p->peer_server_info = ps;
+}
+
+void insert_new_transfer_into_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to){
+    peer_server_info_t *ps = p->peer_server_info;
+    transfer_t *the_transfer;
+    if(ps == NULL){
+        fprintf(stderr, "peer don't have server info ,you need to malloc\n");
+        init_peer_server_info_in_pool();
+        ps = p->peer_server_info;
+    }
+    the_transfer = (transfer_t *)malloc(sizeof(transfer_t));
+    init_transfer(the_transfer, hash, config, to);
+    if(ps->transfer_head == NULL){
+        ps->transfer_head = (Node *)malloc(sizeof(Node));
+        ps->transfer_head->data = (void *)the_transfer;
+        ps->transfer_head->next = NULL;
+    } else{
+        insert_node((&(ps->transfer_head)), (void *)the_transfer);
+    }
 }
 
 transfer_t *create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to){
@@ -61,15 +81,7 @@ transfer_t *create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *co
         ps->cursor = ps->transfer_num;
     }
     the_transfer = ps->transfers + ps->transfer_num;
-    the_transfer->chunk = (chunk_t *)malloc(sizeof(chunk_t));
-    *(the_transfer->chunk) = load_chunk_from_tar(hash, config);
-    //memset(the_transfer->send_seq, 0, MAX_SEQ_NUM);
-    the_transfer->next_to_send = 0;
-    the_transfer->seq_num = 1;
-    the_transfer->rtt = TIMEOUT_THRESHOLD;
-    init_flow_window(&the_transfer->sender_window);
-    the_transfer->to = to;
-    the_transfer->retransmit_time = 0;
+    init_transfer(the_transfer, hash, config, to);
     ps->transfer_num += 1;
     return the_transfer;
 }

@@ -3,7 +3,7 @@ CC 		= gcc
 CFLAGS		= -g -Wall -DDEBUG
 LDFLAGS		= -lm
 TESTDEFS	= -DTESTING			# comment this out to disable debugging code
-OBJS		= peer.o bt_parse.o spiffy.o debug.o input_buffer.o chunk.o sha.o try_find_peer.o utilities.o peer_storage.o node_list.o bt_client.o data_transfer.o my_time.o bt_server.o flow_control.o
+OBJS		= peer.o bt_parse.o spiffy.o debug.o input_buffer.o chunk.o sha.o try_find_peer.o utilities.o peer_storage.o node_list.o bt_client.o data_transfer.o my_time.o bt_server.o flow_control.o linkedlist.o
 MK_CHUNK_OBJS   = make_chunks.o chunk.o sha.o
 
 BINS            = peer make-chunks
@@ -50,6 +50,8 @@ node_list.c: node_list.h
 bt_client.c: bt_client.h
 
 bt_server.c: bt_server.h
+
+linkedlist.c: linkedlist.h
 
 flow_control.c: flow_control.h
 

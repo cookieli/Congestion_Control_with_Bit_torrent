@@ -115,7 +115,10 @@ int find_hash_id_in_master_chunk_file(char *hexhash, char *master_chunk_filename
     }
     return -1;
 }
-
+int cmp_two_sock(struct sockaddr_in *a, struct sockaddr_in *b){
+    if((a->sin_family == b->sin_family) && (a->sin_port == b->sin_port) && (a->sin_addr.s_addr == b->sin_addr.s_addr) )    return 1;
+    return 0;
+}
 #ifdef _TEST_UTILITIES
 int main(int argc, char *argv[]){
     int len = 0;

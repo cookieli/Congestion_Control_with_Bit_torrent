@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include "data_transfer.h"
 #include "chunk.h"
+#include "linkedlist.h"
 typedef enum peer_state_s{
     INITIAL_STATE,
     ASK_RESOURCE_LOCATION,
@@ -42,6 +43,8 @@ typedef struct peer_server_info_s{
     transfer_t *transfers;
     int transfer_num;
     int cursor;
+
+    Node *transfer_head;
 } peer_server_info_t;
 
 typedef struct peer_storage_pool{
@@ -118,6 +121,8 @@ void print_peer_hash_addr_map();
 void free_peer_temp_state_for_GET(peer_temp_state_for_GET_t *pt);
 void free_peer_temp_state_for_GET_in_pool();
 
+
+void insert_new_transfer_into_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
 
 
 #endif

@@ -209,3 +209,26 @@ int transfer_has_timeout(transfer_t *t){
     }
     return 0;
 }
+
+void init_transfer(transfer_t *the_transfer, chunk_hash *hash, bt_config_t *config, struct sockaddr_in to){
+    //transfer_t *the_transfer = (transfer_t *)malloc(sizeof(transfer_t));
+    the_transfer->chunk = (chunk_t *)malloc(sizeof(chunk_t));
+    *(the_transfer->chunk) = load_chunk_from_tar(hash, config);
+    the_transfer->next_to_send = 0;
+    the_transfer->seq_num = 1;
+    the_transfer->rtt = TIMEOUT_THRESHOLD;
+    init_flow_window(&the_transfer->sender_window);
+    the_transfer->to = to;
+    the_transfer->retransmit_time = 0;
+    //ps->transfer_num += 1;
+    // return the_transfer;
+}
+
+int cmp_transfer_by_sockaddr(void *a, void *b){
+    return cmp_two_sock((struct sockaddr_in *)a, &(((transfer_t *)b)->to));
+}
+
+void remove_transfer(void *data){
+    transfer_t *t = (transfer_t *)data;
+    free(t->chunk);
+}
