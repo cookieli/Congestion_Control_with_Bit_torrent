@@ -34,8 +34,6 @@ void init_peer_client_info_in_pool(){
 }
 void init_peer_server_info_in_pool(){
     peer_server_info_t *ps = (peer_server_info_t *)malloc(sizeof(peer_server_info_t));
-    ps->transfers = NULL;
-    ps->transfer_num = 0;
     ps->transfer_head = NULL;
     p->peer_server_info = ps;
 }
@@ -57,33 +55,6 @@ void insert_new_transfer_into_server_pool(chunk_hash *hash, bt_config_t *config,
     } else{
         insert_node((&(ps->transfer_head)), (void *)the_transfer);
     }
-}
-
-transfer_t *create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to){
-    peer_server_info_t *ps = p->peer_server_info;
-    transfer_t *the_transfer;
-    if(ps == NULL){
-        fprintf(stderr, "peer don't have server info ,you need to malloc\n");
-        init_peer_server_info_in_pool();
-        ps = p->peer_server_info;
-    }
-    if(ps->transfers == NULL){
-        ps->transfers = (transfer_t *)malloc(sizeof(transfer_t));
-        ps->cursor = 0;
-    }else{
-        for(int i = 0; i < ps->transfer_num; i++){
-            if(!check_transfer_with_bin_hash(ps->transfers+i, hash)){
-                ps->cursor = i;
-                return ps->transfers + i;
-            }
-        }
-        ps->transfers = (transfer_t *)realloc(ps->transfers, sizeof(transfer_t) * (ps->transfer_num + 1));
-        ps->cursor = ps->transfer_num;
-    }
-    the_transfer = ps->transfers + ps->transfer_num;
-    init_transfer(the_transfer, hash, config, to);
-    ps->transfer_num += 1;
-    return the_transfer;
 }
 
 

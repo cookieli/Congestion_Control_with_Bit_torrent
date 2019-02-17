@@ -85,8 +85,8 @@ void create_output_file(char *output_file, GET_packet_sender_t *sender);
 int transfer_has_timeout(transfer_t *t);
 
 void init_transfer(transfer_t *the_transfer,chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
-int cmp_transfer_by_sockaddr(void *a, void *b);
+int cmp_transfer_by_sockaddr(const void *a, const void *b);
 
-void remove_transfer(void *data);
+int remove_transfer(void *data);
 #endif
 

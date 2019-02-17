@@ -154,7 +154,7 @@ void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int 
     int size = PACKET_DATA_SIZE;
     uint8_t data[PACKET_DATA_SIZE];
     uint32_t data_position = seq_num - 1;
-    uint32_t next_to_send = data_position +1;
+    // uint32_t next_to_send = data_position +1;
     memcpy(data, &(t->chunk->data[data_position*PACKET_DATA_SIZE]), PACKET_DATA_SIZE);
     d = construct_DATA_packet(data, size, seq_num);
     spiffy_sendto(sockfd, d, d->header.packet_len, 0, (struct sockaddr *)(&from), sizeof(struct sockaddr_in));
@@ -224,11 +224,12 @@ void init_transfer(transfer_t *the_transfer, chunk_hash *hash, bt_config_t *conf
     // return the_transfer;
 }
 
-int cmp_transfer_by_sockaddr(void *a, void *b){
+int cmp_transfer_by_sockaddr(const void *a, const void *b){
     return cmp_two_sock((struct sockaddr_in *)a, &(((transfer_t *)b)->to));
 }
 
-void remove_transfer(void *data){
+int remove_transfer(void *data){
     transfer_t *t = (transfer_t *)data;
     free(t->chunk);
+    return 0;
 }

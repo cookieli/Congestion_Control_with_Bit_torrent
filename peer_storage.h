@@ -40,10 +40,6 @@ typedef struct peer_client_info_s{
 } peer_client_info_t;
 
 typedef struct peer_server_info_s{
-    transfer_t *transfers;
-    int transfer_num;
-    int cursor;
-
     Node *transfer_head;
 } peer_server_info_t;
 
@@ -79,8 +75,6 @@ void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_fo
 void send_WHOHAS_packet(int sockfd, bt_config_t *config);
 void send_GET_packet_in_peer_pool(int sock);
 void increase_to_another_GET_packet_tunnel();
-
-transfer_t *create_new_transfer_in_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
 void set_peer_pool_hashes(bt_config_t *config);
 void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt);
 peer_temp_state_for_GET_t *init_peer_temp_state_for_GET();
