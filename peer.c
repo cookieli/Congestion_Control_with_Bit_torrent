@@ -95,15 +95,8 @@ void process_inbound_udp(int sock, bt_config_t *config) {
           print_peer_hash_addr_map();
           fprintf(stderr, "------------peer_hashe_addr_map--------------\n");
           //NOW we need to construct GET packet from node-list
-          set_peer_pool_GET_packet_sender();
-          send_GET_packet_in_peer_pool(sock);
-          fprintf(stderr, "------------peer_GET_packet_sender--------------\n");
-          print_GET_packet_sender();
-          fprintf(stderr, "------------peer_GET_packet_sender--------------\n");
-      } else if(get_peer_state() == GET_ERROR_FOR_RESOURCE_LOCATION){
-          send_GET_packet_in_peer_pool(sock);
-          set_peer_state(FOUND_ALL_RESOURCE);
-      }
+      } 
+      send_GET_packet_in_pool_sender_list(sock);
       break;
   case(2)://it is GET packet
       fprintf(stderr, "I have receive GET packet\n");

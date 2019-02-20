@@ -9,29 +9,11 @@
 #include "try_find_peer.h"
 #include "spiffy.h"
 void handle_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
-    if(get_peer_state() == ASK_RESOURCE_LOCATION){
-        check_IHAVE_packet(packet, from);
-        if(found_all_resource_locations()){
-            set_peer_state(FOUND_ALL_RESOURCE);
-            fprintf(stderr, "i have found all resource locations\n");
-            free_peer_temp_state_for_GET_in_pool();
-        }
-    } else if(get_peer_state() == GET_ERROR_FOR_RESOURCE_LOCATION){
-        //we need to resend GET tunnel
-        peer_client_info_t *pc = p->peer_client_info;
-        GET_packet_sender_t *sender = pc->GET_packet_sender;
-        if((sender->tunnels + sender->cursor)->packet == NULL){
-            fprintf(stderr, "we need to reconstruct sender tunnel\n");
-            GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
-            if(packet->hashes_num > 1){
-                fprintf(stderr, "the IHAVE packet not for GET ERROR: too many hashes\n");
-                return;
-            }
-            init_GET_packet_tunnel(tunnel, construct_GET_packet(&packet->hashes[0]), from);
-            print_GET_packet_tunnel(sender->tunnels + sender->cursor);
-        } else{
-            fprintf(stderr, "something wrong about GET retransmititon in handle_IHAVE_packet");
-        }
+    check_IHAVE_packet(packet, from);
+    if(found_all_resource_locations()){
+        set_peer_state(FOUND_ALL_RESOURCE);
+        fprintf(stderr, "i have found all resource locations\n");
+        free_peer_temp_state_for_GET_in_pool();
     }
 }
 void send_ACK_packet(int sock, int ack_num, struct sockaddr_in from){
@@ -43,8 +25,10 @@ void send_ACK_packet(int sock, int ack_num, struct sockaddr_in from){
 
 void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config, struct sockaddr_in from){
     fprintf(stderr, "seq_num:%d, packet_len: %d\n", packet->header.seq_num, packet->header.packet_len);
+    Node *node;
     peer_client_info_t *pc = p->peer_client_info;
-    GET_packet_sender_t *sender = pc->GET_packet_sender;
+    node = node_find(pc->sender_list, cmp_sender_by_sockaddr, &from);
+    GET_packet_sender_t *sender = (GET_packet_sender_t *)node->data;
     GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
     flow_window_t win;
     uint32_t data_position = packet->header.seq_num - 1;
@@ -52,13 +36,22 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
     int ack_num;
     int data_len = packet->header.packet_len - packet->header.header_len;
     if(data_len == 0 && packet->header.seq_num == MAX_SEQ_NUM + 1){
+        increase_to_another_GET_packet_tunnel(sender);
         fprintf(stderr, "i have receive all the data packet\n");
-        print_GET_packet_sender();
-        increase_to_another_GET_packet_tunnel();
-        send_GET_packet_in_peer_pool(sockfd);
-        if(get_peer_state() == FOUND_ALL_DATA){
-            create_output_file(config->output_file, sender);
+        if(check_sender_lst_all_received(pc->sender_list)){
+            fprintf(stderr, "Found all data\n");
+            set_peer_state(FOUND_ALL_DATA);
+            if(get_peer_state() == FOUND_ALL_DATA){
+                fprintf(stderr, "now to create output file\n");
+                create_output_file(config->output_file, sender);
+            }
+            return;
         }
+        //print_GET_packet_sender();
+        //increase_to_another_GET_packet_tunnel(sender);
+        fprintf(stderr, "to send packet in this position\n");
+        send_GET_packet_in_sender(sender, sockfd);
+        //send_GET_packet_in_peer_pool(sockfd);
         return;
     } else if(packet->header.seq_num > MAX_SEQ_NUM + 1){
         return;
@@ -115,29 +108,51 @@ void handle_client_timeout(int sockfd, bt_config_t *config){
     }
     else if(get_peer_state() == FOUND_ALL_RESOURCE){
         // print_GET_packet_sender();
+        int i;
         peer_client_info_t *pc = p->peer_client_info;
-        GET_packet_sender_t *sender = pc->GET_packet_sender;
-        GET_packet_tunnel_t *tunnel = sender->tunnels + sender->cursor;
-        if(tunnel->have_been_acked == 0){
-            if(check_time_out_in_GET_tunnnel_after_last_sent(tunnel) && check_GET_tunnel_retransmit_time(tunnel) < 3){
-                fprintf(stderr, "You need to retransmit GET packet for hash: ");
-                print_chunk_hash(tunnel->packet->hash);
-                send_GET_tunnel(sockfd, tunnel);
-                return;
-            } else if(check_GET_tunnel_retransmit_time(tunnel) >= 3){
-                fprintf(stderr, "you need to find another source in peer for hash: ");
-                print_chunk_hash(tunnel->packet->hash);
-                add_hash_to_peer_temp_state_for_GET_in_pool(&tunnel->packet->hash);
-                set_WHOHAS_cache_in_pool();
-                set_peer_state(GET_ERROR_FOR_RESOURCE_LOCATION);
-                free_GET_tunnel(tunnel);
-                tunnel = (GET_packet_tunnel_t *)malloc(sizeof(GET_packet_tunnel_t));
-                tunnel->packet = NULL;
-                send_WHOHAS_packet(sockfd, config);
-                return;
+        Node *node;
+        GET_packet_sender_t *sender;// = pc->GET_packet_sender;
+        GET_packet_tunnel_t *tunnel;// = sender->tunnels + sender->cursor;
+        for(node = pc->sender_list; node != NULL; node = node->next){
+            sender = (GET_packet_sender_t *)node->data;
+            if(sender->cursor == sender->tunnel_num){
+                continue;
             }
-        } else {
-            fprintf(stderr, "this get data has been received\n");
+            tunnel = sender->tunnels + sender->cursor;
+            if(tunnel->have_been_acked == 0){
+                if(check_time_out_in_GET_tunnnel_after_last_sent(tunnel) && check_GET_tunnel_retransmit_time(tunnel) < 3){
+                    fprintf(stderr, "You need to retransmit GET packet for hash: \n");
+                    print_chunk_hash(tunnel->packet->hash);
+                    send_GET_tunnel(sockfd, tunnel);
+                    return;
+                } else if(check_GET_tunnel_retransmit_time(tunnel) >= 3){
+                    fprintf(stderr, "the corresponding peer is crashed,");
+                    fprintf(stderr, "you need to find another source in peer for hash: \n");
+                    for(i = sender->cursor; i < sender->tunnel_num; i++){
+                        tunnel = sender->tunnels + i;
+                        add_hash_to_peer_temp_state_for_GET_in_pool(&tunnel->packet->hash);
+                        //free_GET_tunnel(tunnel);
+                    }
+                    sender->tunnel_num = sender->cursor;
+                    set_WHOHAS_cache_in_pool();
+                    if(sender->tunnel_num == 0){
+                        node_delete(&pc->sender_list, node, remove_sender);
+                    }else {
+                        GET_packet_tunnel_t *temp = sender->tunnels;
+                        sender->tunnels = (GET_packet_tunnel_t *)realloc(sender->tunnels, sender->tunnel_num * (sizeof(GET_packet_tunnel_t)));
+                        if(sender->tunnels == NULL){
+                            fprintf(stderr, "can't free storage\n");
+                            sender->tunnels = temp;
+                        }
+                    }
+                    set_peer_state(GET_ERROR_FOR_RESOURCE_LOCATION);
+                    //free_GET_tunnel(tunnel);
+                    send_WHOHAS_packet(sockfd, config);
+                    return;
+                }
+            } else {
+                //fprintf(stderr, "this get data has been received\n");
+            }
         }
     }
 }

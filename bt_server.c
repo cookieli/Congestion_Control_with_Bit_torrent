@@ -9,6 +9,10 @@ void handle_server_timeout(int sockfd){
     if(get_peer_state() == I_HAVE_RESOURCE){
         //if()
         peer_server_info_t *ps = p->peer_server_info;
+        if(ps == NULL){
+            fprintf(stderr, "don't receive GET packet\n");
+            return;
+        }
         if(!node_length(ps->transfer_head)){
             fprintf(stderr, "has no transfers\n");
             return;

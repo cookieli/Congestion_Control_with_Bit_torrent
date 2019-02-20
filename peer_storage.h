@@ -35,8 +35,7 @@ typedef struct peer_client_info_s{
     hash_addr_map_t *hash_maps;
     int maps_num;
     GET_packet_sender_t *GET_packet_sender;
-
-    chunk_t *chunks;
+    Node *sender_list;
 } peer_client_info_t;
 
 typedef struct peer_server_info_s{
@@ -74,7 +73,9 @@ void init_peer_storage_pool(bt_config_t *config);
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt);
 void send_WHOHAS_packet(int sockfd, bt_config_t *config);
 void send_GET_packet_in_peer_pool(int sock);
-void increase_to_another_GET_packet_tunnel();
+void send_GET_packet_in_pool_sender_list(int sock);
+void send_GET_packet_in_sender(GET_packet_sender_t *sender, int sock);
+void increase_to_another_GET_packet_tunnel(GET_packet_sender_t *sender);
 void set_peer_pool_hashes(bt_config_t *config);
 void set_want_hashes(char *chunkfile, peer_temp_state_for_GET_t *pt);
 peer_temp_state_for_GET_t *init_peer_temp_state_for_GET();
@@ -118,5 +119,7 @@ void free_peer_temp_state_for_GET_in_pool();
 
 void insert_new_transfer_into_server_pool(chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
 
+void add_tunnel_to_sender_lst(chunk_hash *hash, struct sockaddr_in *addr);
 
+int check_sender_lst_all_received(Node *sender_list);
 #endif

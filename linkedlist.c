@@ -36,7 +36,6 @@ Node *insert_node(Node **head, void *data){
 }
 
 Node *node_find(Node *head, int(* compare)(const void *,const void *), void *key){
-    
     while(head != NULL){
         if(compare(key, head->data)){
             return head;

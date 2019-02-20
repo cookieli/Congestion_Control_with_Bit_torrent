@@ -29,15 +29,13 @@ typedef struct GET_packet_tunnel_s{
     mytime_t begin_sent;
     int retransmit_time;
     int have_been_acked;
-
-
     chunk_t *chunk;
     flow_window_t receive_window;
 } GET_packet_tunnel_t;
 
 typedef struct GET_packet_sender_s{
+    struct sockaddr_in addr;
     GET_packet_tunnel_t *tunnels;
-    chunk_t *chunks;
     int tunnel_num;
     int cursor;
 } GET_packet_sender_t;
@@ -63,6 +61,10 @@ void init_GET_packet_tunnel(GET_packet_tunnel_t *tunnel, GET_packet_t *packet, s
 GET_packet_tunnel_t *construct_GET_tunnel(hash_addr_map_t *maps, int map_num);
 void free_GET_tunnel(GET_packet_tunnel_t *tunnel);
 void send_GET_tunnel(int sockfd, GET_packet_tunnel_t *tunnel);
+GET_packet_tunnel_t build_GET_packet_tunnel(chunk_hash *hash, struct sockaddr_in addr);
+void add_tunnel_to_sender(chunk_hash *hash, struct sockaddr_in *addr, GET_packet_sender_t *sender);
+GET_packet_sender_t *build_GET_packet_sender(struct sockaddr_in *addr, chunk_hash *hash);
+
 
 void print_sockaddr(struct sockaddr_in addr);
 void print_GET_packet(GET_packet_t *packet);
@@ -76,6 +78,8 @@ int check_transfer_with_bin_hash(transfer_t *t, chunk_hash *h);
 int transfer_has_timeout(transfer_t *t);
 
 
+
+
 DATA_packet_t *construct_DATA_packet(uint8_t *data, int data_num, int seq_num);
 void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_in from);
 void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from);
@@ -86,7 +90,9 @@ int transfer_has_timeout(transfer_t *t);
 
 void init_transfer(transfer_t *the_transfer,chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
 int cmp_transfer_by_sockaddr(const void *a, const void *b);
-
+int cmp_sender_by_sockaddr(const void *a, const void *b);
 int remove_transfer(void *data);
+int remove_sender(void *data);
+GET_packet_tunnel_t *find_corresponding_tunnel(GET_packet_sender_t *sender, chunk_hash *hash);
 #endif
 

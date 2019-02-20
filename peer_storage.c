@@ -30,6 +30,7 @@ void init_peer_client_info_in_pool(){
     pc->hash_maps = NULL;
     pc->maps_num = 0;
     pc->GET_packet_sender = NULL;
+    pc->sender_list = NULL;
     p->peer_client_info = pc;
 }
 void init_peer_server_info_in_pool(){
@@ -136,9 +137,38 @@ void send_GET_packet_in_peer_pool(int sock){
     //sender->cursor += 1;
 }
 
-void increase_to_another_GET_packet_tunnel(){
+void send_GET_packet_in_pool_sender_list(int sock){
+    Node *n;
+    GET_packet_sender_t *sender;
     peer_client_info_t *pc = p->peer_client_info;
-    GET_packet_sender_t *sender = pc->GET_packet_sender;
+    if(pc == NULL){
+        fprintf(stderr, "err for peer_client_info\n");
+    }
+    Node *sender_list = pc->sender_list;
+    if(sender_list == NULL){
+        fprintf(stderr, "error  sender list for GET\n");
+    }
+    for(n = sender_list; n != NULL; n = n->next){
+        sender = (GET_packet_sender_t *)n->data;
+        if(sender->cursor == sender->tunnel_num){
+            fprintf(stderr, "have already send all tunnel(GET packet) and receive all the data\n");
+            continue;
+        }
+        send_GET_tunnel(sock, sender->tunnels + sender->cursor);
+    }
+}
+
+void send_GET_packet_in_sender(GET_packet_sender_t *sender, int sock){
+    if(sender->cursor == sender->tunnel_num){
+        fprintf(stderr, "have already send all tunnel(GET packet) and receive all the data\n");
+        return;
+    }
+    send_GET_tunnel(sock, sender->tunnels + sender->cursor);
+}
+
+void increase_to_another_GET_packet_tunnel(GET_packet_sender_t *sender){
+    // peer_client_info_t *pc = p->peer_client_info;
+    //GET_packet_sender_t *sender = pc->GET_packet_sender;
     sender->cursor += 1;
 }
 
@@ -162,9 +192,10 @@ void check_IHAVE_packet(contact_packet_t *packet, struct sockaddr_in from){
     peer_client_info_t *pc = p->peer_client_info;
     peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
     for(i = 0; i < pt->want_num; i++){
-        if(map_this_hash_to_packet(pt->want_hashes[i], packet)){
+        if(map_this_hash_to_packet(pt->want_hashes[i], packet) && pt->hashes_found[i] == 0){
             pt->hashes_found[i] = 1;
-            add_node_to_addr_map(pt->want_hashes[i], from, pc->hash_maps, pc->maps_num);
+            add_tunnel_to_sender_lst(pt->want_hashes+i, &from);
+            //add_node_to_addr_map(pt->want_hashes[i], from, pc->hash_maps, pc->maps_num);
         }
     }
 }
@@ -386,3 +417,42 @@ void print_peer_hash_addr_map(){
     print_hash_addr_map(pc->hash_maps, pc->maps_num);
 }
 
+//to issue sender_list in peer
+
+void add_tunnel_to_sender_lst(chunk_hash *hash, struct sockaddr_in *addr){
+    GET_packet_sender_t *sender;
+    Node *node;
+    GET_packet_tunnel_t *tunnel;
+    peer_client_info_t *pc = p->peer_client_info;
+    if(pc->sender_list == NULL){
+        fprintf(stderr, "we need to create sender list\n");
+        pc->sender_list = (Node *)malloc(sizeof(Node));
+        pc->sender_list->data = (void *)build_GET_packet_sender(addr, hash);
+        pc->sender_list->next = NULL;
+        return;
+    }
+    node = node_find(pc->sender_list, cmp_sender_by_sockaddr, addr);
+    if(node == NULL){
+        fprintf(stderr, "we need to add sender to list\n");
+        sender = build_GET_packet_sender(addr, hash);
+        insert_node(&pc->sender_list, (void *)sender);
+    } else{
+        sender = (GET_packet_sender_t *)node->data;
+        tunnel = find_corresponding_tunnel(sender, hash);
+        if(tunnel == NULL){
+            fprintf(stderr, "we need to add tunnel to sender\n");
+            add_tunnel_to_sender(hash, addr, sender);
+        }
+    }
+}
+
+
+int check_sender_lst_all_received(Node *sender_list){
+    Node *n;
+    GET_packet_sender_t *s;
+    for(n = sender_list ; n!= NULL; n = n->next){
+        s = (GET_packet_sender_t *)n->data;
+        if(s->cursor != s->tunnel_num)  return 0;
+    }
+    return 1;
+}

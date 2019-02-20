@@ -28,6 +28,36 @@ DATA_packet_t *construct_DATA_packet(uint8_t *data, int data_num, int seq_num){
     }
     return packet;
 }
+
+void add_tunnel_to_sender(chunk_hash *hash, struct sockaddr_in *addr, GET_packet_sender_t *sender){
+    if(!cmp_two_sock(addr, &sender->addr)){
+        fprintf(stderr, "tunnel don't belong this sender\n");
+        return;
+    }
+    sender->tunnels = (GET_packet_tunnel_t *)realloc(sender->tunnels, (sender->tunnel_num + 1)*sizeof(GET_packet_tunnel_t));
+    GET_packet_tunnel_t tunnel = build_GET_packet_tunnel(hash, *addr);
+    sender->tunnels[sender->tunnel_num] = tunnel;
+    sender->tunnel_num += 1;
+    //free_GET_tunnel(tunnel);
+}
+
+GET_packet_sender_t *build_GET_packet_sender(struct sockaddr_in *addr, chunk_hash *hash){
+    GET_packet_sender_t *sender = (GET_packet_sender_t *)malloc(sizeof(GET_packet_sender_t));
+    sender->addr = *addr;
+    sender->tunnels = (GET_packet_tunnel_t *)malloc(sizeof(GET_packet_tunnel_t));
+    sender->tunnel_num = 1;
+    sender->cursor = 0;
+    *sender->tunnels = build_GET_packet_tunnel(hash, *addr);
+    //add_tunnel_to_sender(hash, addr, sender);
+    return sender;
+}
+
+GET_packet_tunnel_t build_GET_packet_tunnel(chunk_hash *hash, struct sockaddr_in addr){
+    GET_packet_tunnel_t tunnel;// = (GET_packet_tunnel_t *)malloc(sizeof(GET_packet_tunnel_t));
+    GET_packet_t *packet = construct_GET_packet(hash);
+    init_GET_packet_tunnel(&tunnel, packet, addr);
+    return tunnel;
+}
 void init_GET_packet_tunnel(GET_packet_tunnel_t *tunnel, GET_packet_t *packet, struct sockaddr_in addr){
     tunnel->packet = packet;
     tunnel->addr = addr;
@@ -62,6 +92,9 @@ GET_packet_tunnel_t *construct_GET_tunnel(hash_addr_map_t *maps, int map_num){
     return tunnels;
 }
 void send_GET_tunnel(int sockfd, GET_packet_tunnel_t *tunnel){
+    if(tunnel == NULL){
+        fprintf(stderr, "the tunnel doesn't exist\n");
+    }
     tunnel->begin_sent = millitime(NULL);
     tunnel->retransmit_time += 1;
     spiffy_sendto(sockfd, tunnel->packet, tunnel->packet->header.packet_len, 0, (struct sockaddr *)(&(tunnel->addr)), sizeof(tunnel->addr));
@@ -69,6 +102,7 @@ void send_GET_tunnel(int sockfd, GET_packet_tunnel_t *tunnel){
 
 void free_GET_tunnel(GET_packet_tunnel_t *tunnel){
     free(tunnel->packet);
+    free(tunnel->chunk);
     free(tunnel);
 }
 void print_sockaddr(struct sockaddr_in addr){
@@ -228,8 +262,30 @@ int cmp_transfer_by_sockaddr(const void *a, const void *b){
     return cmp_two_sock((struct sockaddr_in *)a, &(((transfer_t *)b)->to));
 }
 
+int cmp_sender_by_sockaddr(const void *a, const void *b){
+    return cmp_two_sock((struct sockaddr_in *)a, &(((GET_packet_sender_t *)b)->addr));
+}
+
 int remove_transfer(void *data){
     transfer_t *t = (transfer_t *)data;
     free(t->chunk);
+    free(t);
     return 0;
+}
+
+int remove_sender(void *data){
+    GET_packet_sender_t *s = (GET_packet_sender_t *)data;
+    free(s);
+}
+
+GET_packet_tunnel_t *find_corresponding_tunnel(GET_packet_sender_t *sender, chunk_hash *hash){
+    int i;
+    GET_packet_tunnel_t *tunnel;
+    for(i = 0; i < sender->tunnel_num; i++){
+        tunnel = sender->tunnels + i;
+        if(two_hash_equal(*hash, tunnel->packet->hash)){
+            return tunnel;
+        }
+    }
+    return NULL;
 }
