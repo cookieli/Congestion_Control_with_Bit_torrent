@@ -115,6 +115,27 @@ int find_hash_id_in_master_chunk_file(char *hexhash, char *master_chunk_filename
     }
     return -1;
 }
+
+int find_hash_id_in_chunk_file(char *hexhash, char *chunk_file){
+    FILE *fd;
+    int id;
+    char buf[FILE_LEN];
+    fd = fopen(chunk_file, "rb");
+    if(fd == NULL){
+        fprintf(stderr, "can't open file %s\n", chunk_file);
+        perror("fopen");
+        exit(-1);
+    }
+    memset(buf, 0, FILE_LEN);
+    while(fgets(buf, FILE_LEN, fd) != NULL){
+        buf[CHUNK_FILE_LINE_LEN]  = '\0';
+        if(!compare_two_hex_hashes(hexhash, &buf[2])){
+            id = buf[0] - '0';
+            return id;
+        }
+    }
+    return -1;
+}
 int cmp_two_sock(struct sockaddr_in *a, struct sockaddr_in *b){
     if((a->sin_family == b->sin_family) && (a->sin_port == b->sin_port) && (a->sin_addr.s_addr == b->sin_addr.s_addr) )    return 1;
     return 0;

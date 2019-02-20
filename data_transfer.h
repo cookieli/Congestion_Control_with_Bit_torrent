@@ -6,6 +6,7 @@
 #include "chunk.h"
 #include "flow_control.h"
 //#include "peer_storage.h"
+//#include "peer_storage.h"
 #define TIMEOUT_THRESHOLD 3000
 
 typedef struct GET_packet_s{
@@ -69,7 +70,7 @@ GET_packet_sender_t *build_GET_packet_sender(struct sockaddr_in *addr, chunk_has
 void print_sockaddr(struct sockaddr_in addr);
 void print_GET_packet(GET_packet_t *packet);
 void print_GET_packet_tunnel(GET_packet_tunnel_t *t);
-void print_GET_packet_sender();
+//void print_GET_packet_sender();
 
 int check_time_out_in_GET_tunnnel_after_last_sent(GET_packet_tunnel_t *t);
 int check_GET_tunnel_retransmit_time(GET_packet_tunnel_t *t);
@@ -86,6 +87,7 @@ void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in fr
 void set_data_been_acked(int ack_num, transfer_t *t);
 void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int sockfd, struct sockaddr_in from);
 void create_output_file(char *output_file, GET_packet_sender_t *sender);
+//void create_output_file_from_client_side(peer_client_info_t *pc);
 int transfer_has_timeout(transfer_t *t);
 
 void init_transfer(transfer_t *the_transfer,chunk_hash *hash, bt_config_t *config, struct sockaddr_in to);
@@ -94,5 +96,7 @@ int cmp_sender_by_sockaddr(const void *a, const void *b);
 int remove_transfer(void *data);
 int remove_sender(void *data);
 GET_packet_tunnel_t *find_corresponding_tunnel(GET_packet_sender_t *sender, chunk_hash *hash);
+
+int test_sender_exist(void *data);
 #endif
 

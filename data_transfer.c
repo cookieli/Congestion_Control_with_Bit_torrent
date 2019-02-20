@@ -121,7 +121,7 @@ void print_GET_packet_tunnel(GET_packet_tunnel_t *t){
     print_GET_packet(t->packet);
     fprintf(stderr, "the tunnel to addr: ");
     print_sockaddr(t->addr);
-    fprintf(stderr, "begin_time is: %d\n", t->begin_sent);
+    fprintf(stderr, "begin_time is: %ld\n", t->begin_sent);
     mytime_t now = millitime(NULL);
     fprintf(stderr, "time spent: %ld\n", now - t->begin_sent);
     fprintf(stderr, "limit times: %d\n", t->retransmit_time);
@@ -130,16 +130,6 @@ void print_GET_packet_tunnel(GET_packet_tunnel_t *t){
     }
 }
 
-void print_GET_packet_sender(){
-    fprintf(stderr, "the GET packet sender: \n");
-    peer_client_info_t *pc = p->peer_client_info;
-    GET_packet_sender_t *s = pc->GET_packet_sender;
-    int i;
-    for(i = 0; i < s->tunnel_num; i++){
-        print_GET_packet_tunnel(&s->tunnels[i]);
-    }
-    //print_chunk(s->chunks + s->cursor);
-}
 
 int check_time_out_in_GET_tunnnel_after_last_sent(GET_packet_tunnel_t *t){
     mytime_t now = millitime(NULL);
@@ -207,7 +197,7 @@ void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in fr
     chunk_t *c = t->chunk;
     int i = win.seq_index;
     //t->time_stamp = millitime(NULL);
-    mytime_t current_time;
+    //mytime_t current_time;
     for(i = win.begin; i < win.begin + win.window_size; i++){
         if((c->seq_bits[i] == 0)){
             c->seq_bits[i] = 1;
@@ -230,7 +220,7 @@ void create_output_file(char *output_file, GET_packet_sender_t *sender){
     chunk_t *c;
     for(int i = 0; i < sender->tunnel_num; i++){
         c = (sender->tunnels + i)->chunk;
-        fwrite(c->data, 1, DATA_CHUNK_SIZE, fp);;
+        fwrite(c->data, 1, DATA_CHUNK_SIZE, fp);
     }
     fclose(fp);
 }
@@ -274,8 +264,24 @@ int remove_transfer(void *data){
 }
 
 int remove_sender(void *data){
+    int i;
+    GET_packet_tunnel_t *tunnel;
     GET_packet_sender_t *s = (GET_packet_sender_t *)data;
+    if(s->tunnel_num > 0){
+        for(i = 0; i < s->tunnel_num; i++){
+            tunnel = s->tunnels + i;
+            free(tunnel->packet);
+            free(tunnel->chunk);
+        }
+        free(s->tunnels);
+    }
     free(s);
+    return 0;
+}
+
+int test_sender_exist(void *data){
+    if(data == NULL)  return 0;
+    return 1;
 }
 
 GET_packet_tunnel_t *find_corresponding_tunnel(GET_packet_sender_t *sender, chunk_hash *hash){

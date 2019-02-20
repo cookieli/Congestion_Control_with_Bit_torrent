@@ -24,13 +24,13 @@ peer_temp_state_for_GET_t *init_peer_temp_state_for_GET(){
     return ret;
 }
 
-void init_peer_client_info_in_pool(){
+void init_peer_client_info_in_pool(char *chunk_file, char *output_file){
     peer_client_info_t *pc = (peer_client_info_t *)malloc(sizeof(peer_client_info_t));
     pc->peer_temp_state_for_GET = NULL;
-    pc->hash_maps = NULL;
-    pc->maps_num = 0;
-    pc->GET_packet_sender = NULL;
     pc->sender_list = NULL;
+    //pc->output_file = outputfile;
+    strcpy(pc->output_file, output_file);
+    strcpy(pc->chunk_file, chunk_file);
     p->peer_client_info = pc;
 }
 void init_peer_server_info_in_pool(){
@@ -90,20 +90,13 @@ void set_temp_state_for_peer_storage_pool(char *chunkfile){
     set_WHOHAS_cache(packets, packets_length, pt);
     set_want_hashes(chunkfile, pt);
     p->peer_client_info->peer_temp_state_for_GET = pt;
+    p->peer_client_info->chunk_num = pt->want_num;
+    //p->peer_client_info->output_file = outputfile;
+    //p->peer_client_info->chunk_file = chunkfile;
     p->peer_state = ASK_RESOURCE_LOCATION;
 }
 
-void set_peer_pool_hash_addr_map(){
-    peer_client_info_t *pc = p->peer_client_info;
-    peer_temp_state_for_GET_t *pt = pc->peer_temp_state_for_GET;
-    pc->hash_maps = init_hash_addr_map(pt->want_num, pt->want_hashes);
-    pc->maps_num = pt->want_num;
-}
 
-void set_peer_pool_GET_packet_sender(){
-    peer_client_info_t *pc = p->peer_client_info;
-    pc->GET_packet_sender = init_GET_packet_sender(pc->hash_maps, pc->maps_num);
-}
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt){
     pt->WHOHAS_cache = packets;
     pt->WHOHAS_num = length;
@@ -125,18 +118,8 @@ void send_WHOHAS_packet(int sockfd, bt_config_t *config){
         send_WHOHAS_to_peers(sockfd, config, *(pt->WHOHAS_cache + i));
     }
 }
-void send_GET_packet_in_peer_pool(int sock){
-    peer_client_info_t *pc = p->peer_client_info;
-    GET_packet_sender_t *sender = pc->GET_packet_sender;
-    if(sender->cursor == sender->tunnel_num){
-        fprintf(stderr, "have already send all tunnel(GET packet) and receive all the data\n");
-        set_peer_state(FOUND_ALL_DATA);
-        return;
-    }
-    send_GET_tunnel(sock, sender->tunnels + sender->cursor);
-    //sender->cursor += 1;
-}
-
+//void send_GET_packet_in_peer_pool(int sock){
+    
 void send_GET_packet_in_pool_sender_list(int sock){
     Node *n;
     GET_packet_sender_t *sender;
@@ -293,6 +276,12 @@ void print_peer_storage_pool(){
     }
 }
 
+void print_peer_client_info(){
+    peer_client_info_t *pc = p->peer_client_info;
+    fprintf(stderr, "the output_file is: %s\n", pc->output_file);
+    fprintf(stderr, "the chunkfile is: %s\n", pc->chunk_file);
+    fprintf(stderr, "I want hash num is: %d\n", pc->chunk_num);
+}
 
 host_and_port *convert_from_sockaddr(struct sockaddr_in from){
     host_and_port *hap = (host_and_port *)malloc(sizeof(host_and_port));
@@ -411,11 +400,11 @@ void print_hash_addr_map(hash_addr_map_t *maps, int want_num){
     }
 }
 
-void print_peer_hash_addr_map(){
+//void print_peer_hash_addr_map(){
     //peer_temp_state_for_GET_t *pt = p->peer_temp_state_for_GET;
-    peer_client_info_t *pc = p->peer_client_info;
-    print_hash_addr_map(pc->hash_maps, pc->maps_num);
-}
+//    peer_client_info_t *pc = p->peer_client_info;
+//    print_hash_addr_map(pc->hash_maps, pc->maps_num);
+//}
 
 //to issue sender_list in peer
 
@@ -455,4 +444,38 @@ int check_sender_lst_all_received(Node *sender_list){
         if(s->cursor != s->tunnel_num)  return 0;
     }
     return 1;
+}
+
+void clear_peer_client_side(){
+    peer_client_info_t *pc = p->peer_client_info;
+    if(pc->peer_temp_state_for_GET != NULL){
+        free_peer_temp_state_for_GET(pc->peer_temp_state_for_GET);
+    }
+    if(pc->sender_list != NULL){
+        node_delete_all(&pc->sender_list, remove_sender);
+        pc->sender_list = NULL;
+    }
+    free(pc);
+    p->peer_client_info = NULL;
+}
+
+void create_output_file_from_client_side(peer_client_info_t *pc){
+    Node *n;
+    int i;
+    GET_packet_sender_t *sender;
+    GET_packet_tunnel_t *tunnel;
+    chunk_t *c;
+    fprintf(stderr, "file name: %s\n",pc->output_file);
+    FILE *fp = fopen(pc->output_file, "w+");
+    uint8_t data[pc->chunk_num * DATA_CHUNK_SIZE];
+    for(n = pc->sender_list; n != NULL; n = n->next){
+        sender = (GET_packet_sender_t *)n->data;
+        for(i = 0; i < sender->tunnel_num; i++){
+            tunnel = sender->tunnels + i;
+            c = tunnel->chunk;
+            memcpy(data + c->id * DATA_CHUNK_SIZE, c->data, DATA_CHUNK_SIZE);
+        }
+    }
+    fwrite(data, 1, pc->chunk_num * DATA_CHUNK_SIZE, fp);
+    fclose(fp);
 }

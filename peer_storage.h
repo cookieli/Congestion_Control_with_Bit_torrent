@@ -31,11 +31,10 @@ typedef struct peer_temp_state_for_GET_s{
 
 typedef struct peer_client_info_s{
     peer_temp_state_for_GET_t *peer_temp_state_for_GET;
-
-    hash_addr_map_t *hash_maps;
-    int maps_num;
-    GET_packet_sender_t *GET_packet_sender;
     Node *sender_list;
+    char output_file[BT_FILENAME_LEN];
+    char chunk_file[BT_FILENAME_LEN];
+    int chunk_num;
 } peer_client_info_t;
 
 typedef struct peer_server_info_s{
@@ -67,12 +66,12 @@ void set_peer_state(peer_state_t state);
 //extern node_hash_t *node_hash;
 extern peer_storage_pool *p;
 
-void init_peer_client_info_in_pool();
+void init_peer_client_info_in_pool(char *chunk_file, char *output_file);
 void init_peer_server_info_in_pool();
 void init_peer_storage_pool(bt_config_t *config);
 void set_WHOHAS_cache(contact_packet_t **packets, int length, peer_temp_state_for_GET_t *pt);
 void send_WHOHAS_packet(int sockfd, bt_config_t *config);
-void send_GET_packet_in_peer_pool(int sock);
+//void send_GET_packet_in_peer_pool(int sock);
 void send_GET_packet_in_pool_sender_list(int sock);
 void send_GET_packet_in_sender(GET_packet_sender_t *sender, int sock);
 void increase_to_another_GET_packet_tunnel(GET_packet_sender_t *sender);
@@ -83,8 +82,6 @@ void add_hash_to_peer_temp_state_for_GET_in_pool(chunk_hash *hash);
 void set_WHOHAS_cache_in_pool();
 
 void set_temp_state_for_peer_storage_pool(char *chunkfile);
-void set_peer_pool_hash_addr_map();
-void set_peer_pool_GET_packet_sender();
 int *peer_hashes_own_from(contact_packet_t *packet, int *len);
 chunk_hash *get_IHAVE_hashes_from_pool(int *suffices, int length);
 void print_peer_storage_pool();
@@ -111,8 +108,8 @@ void add_node_to_addr_map(chunk_hash hash, struct sockaddr_in s, hash_addr_map_t
 hash_addr_map_t *get_map_by_hash(chunk_hash hash, hash_addr_map_t *maps, int want_num);
 
 void print_hash_addr_map(hash_addr_map_t *maps, int want_num);
-void print_peer_hash_addr_map();
-
+//void print_peer_hash_addr_map();
+void print_peer_client_info();
 void free_peer_temp_state_for_GET(peer_temp_state_for_GET_t *pt);
 void free_peer_temp_state_for_GET_in_pool();
 
@@ -122,4 +119,6 @@ void insert_new_transfer_into_server_pool(chunk_hash *hash, bt_config_t *config,
 void add_tunnel_to_sender_lst(chunk_hash *hash, struct sockaddr_in *addr);
 
 int check_sender_lst_all_received(Node *sender_list);
+void clear_peer_client_side();
+void create_output_file_from_client_side(peer_client_info_t *pc);
 #endif

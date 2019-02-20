@@ -85,6 +85,7 @@ void process_inbound_udp(int sock, bt_config_t *config) {
       //fprintf(stderr, "%d\n", ((contact_packet_t *)buf)->header.packet_type);
       print_WHOHAS_packet((contact_packet_t *)buf);
       handle_WHOHAS_packet(sock, (contact_packet_t *)buf, from, fromlen);
+      //print_peer_client_info();
       break;
   case(1)://it is IHAVE packet
       fprintf(stderr, "I have receive IHAVE packet\n");
@@ -92,7 +93,7 @@ void process_inbound_udp(int sock, bt_config_t *config) {
       handle_IHAVE_packet((contact_packet_t *)buf, from);
       if(get_peer_state() == FOUND_ALL_RESOURCE){
           fprintf(stderr, "------------peer_hashe_addr_map--------------\n");
-          print_peer_hash_addr_map();
+          //print_peer_hash_addr_map();
           fprintf(stderr, "------------peer_hashe_addr_map--------------\n");
           //NOW we need to construct GET packet from node-list
       } 
@@ -106,7 +107,6 @@ void process_inbound_udp(int sock, bt_config_t *config) {
   case(3)://it is DATA packet
       fprintf(stderr, "I have receive DATA packet\n");
       receive_DATA_packet(sock, (DATA_packet_t *)buf, config, from);
-      //print_GET_packet_sender();
       break;
   case(4)://it is ACK packet
       fprintf(stderr, "I have receive ACK packet\n");
@@ -121,9 +121,10 @@ void process_inbound_udp(int sock, bt_config_t *config) {
 
 void process_get(char *chunkfile, char *outputfile) {
     printf("PROCESS GET SKELETON CODE CALLED.  Fill me in!  (%s, %s)\n",chunkfile, outputfile);
-    init_peer_client_info_in_pool();
+    init_peer_client_info_in_pool(chunkfile, outputfile);
     set_temp_state_for_peer_storage_pool(chunkfile);
-    set_peer_pool_hash_addr_map();
+    //print_peer_client_info();
+    //set_peer_pool_hash_addr_map();
 }
 
 void handle_user_input(char *line, void *cbdata) {
@@ -184,6 +185,7 @@ void peer_run(bt_config_t *config) {
             else if (FD_ISSET(STDIN_FILENO, &readfds)) {
                 process_user_input(STDIN_FILENO, userbuf, handle_user_input, config);
                 send_WHOHAS_packet(sock, config);
+                //print_peer_client_info();
             }
         }else if(nfds == 0){
             handle_client_timeout(sock, config);

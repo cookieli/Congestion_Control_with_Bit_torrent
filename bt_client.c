@@ -43,15 +43,17 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
             set_peer_state(FOUND_ALL_DATA);
             if(get_peer_state() == FOUND_ALL_DATA){
                 fprintf(stderr, "now to create output file\n");
-                create_output_file(config->output_file, sender);
+                //create_output_file(config->output_file, sender);
+                // print_peer_client_info();
+                create_output_file_from_client_side(pc);
+                fprintf(stderr, "the GET tar have been finished\n");
+                clear_peer_client_side();
+                set_peer_state(INITIAL_STATE);
             }
             return;
         }
-        //print_GET_packet_sender();
-        //increase_to_another_GET_packet_tunnel(sender);
         fprintf(stderr, "to send packet in this position\n");
         send_GET_packet_in_sender(sender, sockfd);
-        //send_GET_packet_in_peer_pool(sockfd);
         return;
     } else if(packet->header.seq_num > MAX_SEQ_NUM + 1){
         return;
@@ -62,7 +64,10 @@ void receive_DATA_packet(int sockfd, DATA_packet_t *packet, bt_config_t *config,
         tunnel->chunk = (chunk_t *)malloc(sizeof(chunk_t));
         binhash_copy(tunnel->packet->hash.binary_hash, c.binhash);
         binary2hex(c.binhash, BIN_HASH_SIZE, c.hexhash);
-        c.id = find_hash_id_in_master_chunk_file(c.hexhash, config->chunk_file);
+        //c.id = find_hash_id_in_master_chunk_file(c.hexhash, pc->chunk_file);
+        c.id = find_hash_id_in_chunk_file(c.hexhash, pc->chunk_file);
+        //fprintf(stderr, "chunk id: %d\n", c.id);
+        //exit(-1);
         memset(c.seq_bits, 0, MAX_SEQ_NUM);
         c.cursor = 0;
     } else{
@@ -132,6 +137,8 @@ void handle_client_timeout(int sockfd, bt_config_t *config){
                         tunnel = sender->tunnels + i;
                         add_hash_to_peer_temp_state_for_GET_in_pool(&tunnel->packet->hash);
                         //free_GET_tunnel(tunnel);
+                        free(tunnel->packet);
+                        free(tunnel->chunk);
                     }
                     sender->tunnel_num = sender->cursor;
                     set_WHOHAS_cache_in_pool();
@@ -146,7 +153,6 @@ void handle_client_timeout(int sockfd, bt_config_t *config){
                         }
                     }
                     set_peer_state(GET_ERROR_FOR_RESOURCE_LOCATION);
-                    //free_GET_tunnel(tunnel);
                     send_WHOHAS_packet(sockfd, config);
                     return;
                 }
