@@ -33,20 +33,26 @@ int check_chunk_with_bin_hash(chunk_t c, uint8_t *bin){
     }
     return 0;
 }
+
 chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
     chunk_t chunk;
     char buf[CHUNK_FILE_LINE_LEN];
     char master_chunk_filename[PATH_LEN];
     char line[FILE_LEN];
-    FILE *hc;
     FILE *master_chunk_f;
     chunk.cursor = 0;
     binhash_copy(h->binary_hash, chunk.binhash);
     binary2hex(chunk.binhash, BIN_HASH_SIZE, chunk.hexhash);
-    hc = fopen(config->has_chunk_file, "rb");
+    //hc = fopen(config->has_chunk_file, "rb");
     ssize_t len; //= fread(buf, 1, CHUNK_FILE_LINE_LEN, hc);
     //buf[len] = '\0';
-    while((len = fread(buf, 1, CHUNK_FILE_LINE_LEN, hc)) == CHUNK_FILE_LINE_LEN){
+    
+    master_chunk_f = fopen(config->chunk_file, "r");
+    if(fgets(line, FILE_LEN, master_chunk_f) != NULL){
+        sscanf(line, "File: %s\n", master_chunk_filename);
+    }
+    fgets(line, FILE_LEN, master_chunk_f);
+    while((len = fread(buf, 1, CHUNK_FILE_LINE_LEN, master_chunk_f)) == CHUNK_FILE_LINE_LEN){
         buf[len] = '\0';
         fprintf(stderr, "%s\n", &buf[2]);
         fprintf(stderr, "%s\n", chunk.hexhash);
@@ -57,11 +63,6 @@ chunk_t load_chunk_from_tar(chunk_hash *h, bt_config_t *config){
             chunk.id = buf[0] - '0';
             break;
         }
-    }
-    fclose(hc);
-    master_chunk_f = fopen(config->chunk_file, "r");
-    if(fgets(line, FILE_LEN, master_chunk_f) != NULL){
-        sscanf(line, "File: %s\n", master_chunk_filename);
     }
     fclose(master_chunk_f);
     read_chunk_data_by_id(master_chunk_filename, chunk.id, chunk.data);

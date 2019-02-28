@@ -458,6 +458,28 @@ void clear_peer_client_side(){
     free(pc);
     p->peer_client_info = NULL;
 }
+void add_new_hash_to_peer(){
+    Node *n;
+    int i;
+    int j =0;
+    GET_packet_sender_t *sender;
+    GET_packet_tunnel_t *tunnel;
+    peer_client_info_t *pc = p->peer_client_info;
+    p->my_hashes = (chunk_hash *)realloc(p->my_hashes, sizeof(chunk_hash) *(p->chunk_hash_num + pc->chunk_num));
+    for(n = pc->sender_list; n!= NULL; n = n->next){
+        sender = (GET_packet_sender_t *)n->data;
+        for(i = 0; i < sender->tunnel_num; i++){
+            tunnel = sender->tunnels + i;
+            if(j >= pc->chunk_num){
+                fprintf(stderr, "error about chunk hash num in peer_client_info\n");
+                return;
+            }
+            p->my_hashes[p->chunk_hash_num + j] = tunnel->packet->hash;
+            j++;
+        }
+    }
+    p->chunk_hash_num += pc->chunk_num;
+}
 
 void create_output_file_from_client_side(peer_client_info_t *pc){
     Node *n;

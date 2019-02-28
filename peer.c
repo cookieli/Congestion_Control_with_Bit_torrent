@@ -28,6 +28,7 @@
 #include "data_transfer.h"
 #include "chunk.h"
 #include "bt_server.h"
+#include "log.h"
 void peer_run(bt_config_t *config);
 
 int main(int argc, char **argv) {
@@ -48,8 +49,11 @@ int main(int argc, char **argv) {
     }
 #endif
     print_peer_list(&config);
+    setup_logging(&config);
     init_peer_storage_pool(&config);
     //set_peer_pool_hashes(&config);
+    //int i =2, j =4;
+    //LOG("now you need to get %d chunk from %d peers\n",i, j);
     peer_run(&config);
     return 0;
 }
@@ -63,7 +67,7 @@ void process_inbound_udp(int sock, bt_config_t *config) {
 
   fromlen = sizeof(from);
   spiffy_recvfrom(sock, buf, BUFLEN, 0, (struct sockaddr *) &from, &fromlen);
-  fprintf(stderr, "buf length: %d\n", strlen(buf));
+  fprintf(stderr, "buf length: %ld\n", strlen(buf));
   printf("PROCESS_INBOUND_UDP SKELETON -- replace!\n"
          "Incoming message from %s:%d\n%s\n\n",
 	 inet_ntoa(from.sin_addr),
@@ -96,7 +100,7 @@ void process_inbound_udp(int sock, bt_config_t *config) {
           //print_peer_hash_addr_map();
           fprintf(stderr, "------------peer_hashe_addr_map--------------\n");
           //NOW we need to construct GET packet from node-list
-      } 
+      }
       send_GET_packet_in_pool_sender_list(sock);
       break;
   case(2)://it is GET packet
@@ -188,7 +192,9 @@ void peer_run(bt_config_t *config) {
                 //print_peer_client_info();
             }
         }else if(nfds == 0){
-            handle_client_timeout(sock, config);
+            if(p->peer_client_info != NULL){
+               handle_client_timeout(sock, config);
+            }
             handle_server_timeout(sock);
         }
     }

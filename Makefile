@@ -1,9 +1,9 @@
 # Some variables
 CC 		= gcc
-CFLAGS		= -g -Wall -DDEBUG
+CFLAGS		= -g -Wall -DDEBUG #-DENABLE_LOG
 LDFLAGS		= -lm
 TESTDEFS	= -DTESTING			# comment this out to disable debugging code
-OBJS		= peer.o bt_parse.o spiffy.o debug.o input_buffer.o chunk.o sha.o try_find_peer.o utilities.o peer_storage.o node_list.o bt_client.o data_transfer.o my_time.o bt_server.o flow_control.o linkedlist.o
+OBJS		= peer.o bt_parse.o spiffy.o debug.o input_buffer.o chunk.o sha.o try_find_peer.o utilities.o peer_storage.o node_list.o bt_client.o data_transfer.o my_time.o bt_server.o flow_control.o linkedlist.o log.o
 MK_CHUNK_OBJS   = make_chunks.o chunk.o sha.o
 
 BINS            = peer make-chunks
@@ -35,7 +35,7 @@ node_list: node_list.o
 my_time: my_time.o
 
 clean:
-	rm -f *.o $(BINS) $(TESTBINS) utilities try_find_peer node_list example/*.tar example/*.chunks example/*.masterchunks example/*.haschunks example/nodes.map *.tar
+	rm -f *.o $(BINS) $(TESTBINS) utilities try_find_peer node_list example/*.tar example/*.chunks example/*.masterchunks example/*.haschunks example/nodes.map *.tar *.log *.dat
 
 bt_parse.c: bt_parse.h
 

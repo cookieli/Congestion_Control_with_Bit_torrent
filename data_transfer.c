@@ -191,15 +191,14 @@ void set_data_been_acked(int ack_num, transfer_t *t){
         t->chunk->seq_bits[i] = 2;
     }
 }
-
-void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from){
+void send_DATA_packet_in_window_with_bug(int sockfd, transfer_t *t, struct sockaddr_in from){
     flow_window_t win = t->sender_window;
     chunk_t *c = t->chunk;
     int i = win.seq_index;
     //t->time_stamp = millitime(NULL);
     //mytime_t current_time;
     for(i = win.begin; i < win.begin + win.window_size; i++){
-        if((c->seq_bits[i] == 0)){
+        if((c->seq_bits[i] == 0)&& (i != 0) && (i != 7) && (i!= 300) && (i!= 400) && (i != 399)){
             c->seq_bits[i] = 1;
             t->next_to_send = i;
             t->seq_num = t->next_to_send + 1;
@@ -212,6 +211,63 @@ void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in fr
                 fprintf(stderr, "the data has been acked\n");
             }
         }
+    }
+}
+
+void send_DATA_packet_in_window_all(int sockfd, transfer_t *t, struct sockaddr_in from){
+    flow_window_t *win = &t->sender_window;
+    chunk_t *c = t->chunk;
+    //int i = win.seq_index;
+    if(win->seq_index < win->begin){
+        win->seq_index = win->begin;
+    }
+    for(; win->seq_index < win->begin + win->window_size && win->seq_index < MAX_SEQ_NUM; win->seq_index++){
+        c->seq_bits[win->seq_index] = 1;
+        t->next_to_send = win->seq_index;
+        t->seq_num = t->next_to_send + 1;
+        send_DATA_packet_from_transfer(sockfd, t, from);
+    }
+    fprintf(stderr, "window size: %d\n", win->window_size);
+}
+
+void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from){
+    flow_window_t *win = &t->sender_window;
+    chunk_t *c = t->chunk;
+    int i; //= win.seq_index;
+    int cnt = 0;
+    //t->time_stamp = millitime(NULL);
+    //mytime_t current_time;
+    for(i = win->begin; i < win->begin + win->window_size && i < MAX_SEQ_NUM; i++){
+        if((c->seq_bits[i] == 0) ){// && (i != 0) && (i != 7) && (i!= 300) && (i!= 400) && (i != 399)){
+            c->seq_bits[i] = 1;
+            t->next_to_send = i;
+            t->seq_num = t->next_to_send + 1;
+            send_DATA_packet_from_transfer(sockfd, t, from);
+            cnt += 1;
+        } else if(c->seq_bits[i] == 1 || c->seq_bits[i] == 2){
+            //fprintf(stderr, "it have been sent\n");
+            if(c->seq_bits[i] == 1){
+                //fprintf(stderr, "the data has been sent but not acked\n");
+                if(t->retransmit_time >= 3){
+                    //c->seq_bits[i] = 1;
+                     t->next_to_send = i;
+                     t->seq_num = t->next_to_send + 1;
+                     send_DATA_packet_from_transfer(sockfd, t, from);
+                     cnt += 1;
+                }
+            } else if(c->seq_bits[i] == 2){
+                fprintf(stderr, "the data has been acked\n");
+            }
+        }
+    }
+    fprintf(stderr, "window size: %d\n", win->window_size);
+    if((cnt < win->window_size) && (i < MAX_SEQ_NUM) && (win->seq_index < MAX_SEQ_NUM)){
+        for(i = 0; i <= win->window_size - cnt; i++){
+            t->next_to_send = win->seq_index + i;
+            t->seq_num = t->next_to_send + 1;
+            send_DATA_packet_from_transfer(sockfd, t, from);
+        }
+        win->seq_index += i;
     }
 }
 
@@ -240,11 +296,14 @@ void init_transfer(transfer_t *the_transfer, chunk_hash *hash, bt_config_t *conf
     *(the_transfer->chunk) = load_chunk_from_tar(hash, config);
     the_transfer->next_to_send = 0;
     the_transfer->seq_num = 1;
-    the_transfer->rtt = TIMEOUT_THRESHOLD;
+    the_transfer->rtt = 0;
     init_flow_window(&the_transfer->sender_window);
     the_transfer->to = to;
     the_transfer->retransmit_time = 0;
-    //ps->transfer_num += 1;
+    the_transfer->start_time = millitime(NULL);
+    the_transfer->time_stamp = millitime(NULL);
+    
+    //ps->transfer_num += 1
     // return the_transfer;
 }
 

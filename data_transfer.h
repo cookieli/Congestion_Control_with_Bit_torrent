@@ -8,7 +8,7 @@
 //#include "peer_storage.h"
 //#include "peer_storage.h"
 #define TIMEOUT_THRESHOLD 3000
-
+//#define DEFAULT_WINDOW_THRESHOLD 64
 typedef struct GET_packet_s{
     header_t header;
     chunk_hash hash;
@@ -31,7 +31,7 @@ typedef struct GET_packet_tunnel_s{
     int retransmit_time;
     int have_been_acked;
     chunk_t *chunk;
-    flow_window_t receive_window;
+    //flow_window_t receive_window;
 } GET_packet_tunnel_t;
 
 typedef struct GET_packet_sender_s{
@@ -50,7 +50,7 @@ typedef struct transfer_s{
     mytime_t time_stamp;
     mytime_t rtt;
     int retransmit_time;
-    
+    mytime_t start_time;
     flow_window_t sender_window;
 } transfer_t;
 
@@ -84,6 +84,8 @@ int transfer_has_timeout(transfer_t *t);
 DATA_packet_t *construct_DATA_packet(uint8_t *data, int data_num, int seq_num);
 void send_DATA_packet_from_transfer(int sockfd, transfer_t *t, struct sockaddr_in from);
 void send_DATA_packet_in_window(int sockfd, transfer_t *t, struct sockaddr_in from);
+void send_DATA_packet_in_window_with_bug(int sockfd, transfer_t *t, struct sockaddr_in from);
+void send_DATA_packet_in_window_all(int sockfd, transfer_t *t, struct sockaddr_in from);
 void set_data_been_acked(int ack_num, transfer_t *t);
 void send_DATA_packet_from_transfer_by_seq(transfer_t *t, uint32_t seq_num, int sockfd, struct sockaddr_in from);
 void create_output_file(char *output_file, GET_packet_sender_t *sender);

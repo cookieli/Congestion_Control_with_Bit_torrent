@@ -121,4 +121,5 @@ void add_tunnel_to_sender_lst(chunk_hash *hash, struct sockaddr_in *addr);
 int check_sender_lst_all_received(Node *sender_list);
 void clear_peer_client_side();
 void create_output_file_from_client_side(peer_client_info_t *pc);
+void add_new_hash_to_peer();
 #endif

@@ -1,5 +1,5 @@
 f1 = open("example/B.tar", 'rb');
-f2 = open("c.tar", 'rb')
+f2 = open("out4B.tar", 'rb')
 line1 = f1.read()
 line2 = f2.read()
 
