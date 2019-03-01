@@ -285,8 +285,10 @@ int transfer_has_timeout(transfer_t *t){
     mytime_t now = millitime(NULL);
     if((now - t->time_stamp) > t->rtt){
         fprintf(stderr, "time has used out\n");
+        t->time_stamp = now;
         return 1;
     }
+    t->time_stamp = now;
     return 0;
 }
 
@@ -302,6 +304,8 @@ void init_transfer(transfer_t *the_transfer, chunk_hash *hash, bt_config_t *conf
     the_transfer->retransmit_time = 0;
     the_transfer->start_time = millitime(NULL);
     the_transfer->time_stamp = millitime(NULL);
+    the_transfer->start_time_for_CA = 0;
+    the_transfer->time_out_num = 0;
     
     //ps->transfer_num += 1
     // return the_transfer;

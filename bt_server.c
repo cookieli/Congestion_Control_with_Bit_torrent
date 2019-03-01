@@ -8,12 +8,28 @@
 #include "flow_control.h"
 void handle_server_timeout(int sockfd){
     peer_server_info_t *ps = p->peer_server_info;
+    Node *node;
+    Node *next;
+    transfer_t *t;
     if(ps == NULL){
         //fprintf(stderr, "don't receive GET packet\n");
         return;
     }
     if(!node_length(ps->transfer_head)){
         return;
+    } else {
+        for(node = ps->transfer_head; node != NULL; node = next){
+            next = node->next;
+            t = (transfer_t *)node->data;
+            if(t->time_out_num >= 3){
+                node_delete(&ps->transfer_head, node, remove_transfer);
+                return;
+            }
+            if(transfer_has_timeout(t)){
+                t->time_out_num += 1;
+                detect_first_loss(t);
+            }
+        }
     }
 }
 
@@ -76,6 +92,7 @@ void receive_ACK_packet(int sockfd, ACK_packet_t *packet, struct sockaddr_in fro
     } else if (packet->header.ack_num >= win->begin){
         set_data_been_acked(packet->header.ack_num, the_transfer);
     }else {
+        the_transfer->retransmit_time = 0;
         return ;
     }
     int next_to_send = packet->header.ack_num;

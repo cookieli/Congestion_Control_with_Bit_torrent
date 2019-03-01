@@ -49,8 +49,10 @@ typedef struct transfer_s{
 
     mytime_t time_stamp;
     mytime_t rtt;
+    mytime_t start_time_for_CA;
     int retransmit_time;
     mytime_t start_time;
+    int time_out_num;
     flow_window_t sender_window;
 } transfer_t;
 
